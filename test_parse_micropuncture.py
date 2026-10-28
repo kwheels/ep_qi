@@ -9,6 +9,27 @@ from parse_micropuncture import classify
 
 
 class ExtractionTests(unittest.TestCase):
+    def test_access_guidance(self):
+        cases = [
+            ("Ultrasound-guided axillary vein access was obtained.", "ultrasound", "documented_use"),
+            ("US-guided venous access was obtained.", "ultrasound", "documented_use"),
+            ("Using fluoroscopic guidance, a micropuncture needle was inserted into the axillary vein.", "fluoroscopy", "documented_use"),
+            ("Upper extremity venogram for venous access", "venogram", "documented_use"),
+            ("Upper extremity venogram was performed for venous access.", "venogram", "documented_use"),
+            ("Venography was performed to guide axillary vein puncture.", "venogram", "documented_use"),
+            ("Lead slack was assessed with fluoroscopy.", "fluoroscopy", "mention_without_access_context"),
+            ("FLUORO TIME: 11.1 min", "fluoroscopy", "mention_without_access_context"),
+            ("Ultrasound showed no pericardial effusion.", "ultrasound", "mention_without_access_context"),
+            ("Venous access was obtained without ultrasound.", "ultrasound", "explicit_non_use"),
+            ("Ultrasound was considered for venous access.", "ultrasound", "uncertain_mention"),
+            ("Venous access obtained under fluoroscopic guidance. Lead slack checked with fluoroscopy.", "fluoroscopy", "documented_use"),
+            ("Venous access obtained using ultrasound and fluoroscopy.", "ultrasound", "documented_use"),
+            ("Venous access obtained using ultrasound and fluoroscopy.", "fluoroscopy", "documented_use"),
+        ]
+        for note, technique, expected in cases:
+            with self.subTest(note=note, technique=technique):
+                self.assertEqual(classify(note, technique)[0], expected)
+
     def test_documentation_labels(self):
         cases = [
             ("Using a Seldinger technique and fluoroscopic guidance, a\nmicropuncture needle was inserted into the axillary vein which was\nexchanged for a J-tip 0.035 wire.", "documented_use"),
@@ -29,7 +50,7 @@ class ExtractionTests(unittest.TestCase):
                 self.assertEqual(classify(note)[0], expected)
 
     def test_multiline_csv_and_identifier_preservation(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as directory:
             source = Path(directory) / "input.csv"
             target = Path(directory) / "output.csv"
             with source.open("w", newline="", encoding="utf-8-sig") as handle:
