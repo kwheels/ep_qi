@@ -5,10 +5,42 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from parse_micropuncture import classify
+from parse_micropuncture import classify, access_course
+
+# Synthetic regression case mirroring failed attempts followed by cutdown.
+ACCESS_COURSE_NOTE = (
+    "Ultrasound-guided access was performed at the axillary vein. "
+    "The J wire would not advance into the subclavian vein. "
+    "We performed contrast venography showing axillary vein spasm. "
+    "We attempted venous access of the subclavian vein using contrast venography "
+    "and fluoroscopy, but tortuosity meant we were unable to advance the J wire. "
+    "We then proceeded to perform a cephalic vein cutdown. "
+    "Cephalic vein cutdown was performed. "
+    "Venous access was successfully achieved using a micropuncture needle, "
+    "confirming via fluoroscopy the presence of the wires in the vena cava."
+)
 
 
 class ExtractionTests(unittest.TestCase):
+    def test_failed_access_and_cutdown(self):
+        difficulty, conversion = access_course(ACCESS_COURSE_NOTE)
+        self.assertTrue(difficulty)
+        self.assertTrue(conversion)
+        self.assertIn("would not advance", " ".join(difficulty))
+        self.assertIn("cephalic vein cutdown", " ".join(conversion))
+        for technique in ["ultrasound", "micropuncture", "cephalic_cutdown"]:
+            self.assertEqual(classify(ACCESS_COURSE_NOTE, technique)[:3],
+                             ("documented_use", "1", 1))
+        self.assertEqual(classify(ACCESS_COURSE_NOTE, "venogram")[:3],
+                         ("mixed_mentions", "", 1))
+        self.assertEqual(classify(ACCESS_COURSE_NOTE, "fluoroscopy")[:3],
+                         ("mixed_mentions", "", 1))
+        self.assertEqual(access_course("Lead positioning was difficult. No complications."), ([], []))
+        self.assertEqual(classify("Cephalic vein cutdown was considered.", "cephalic_cutdown")[0],
+                         "uncertain_mention")
+        self.assertEqual(classify("No cephalic vein cutdown was performed.", "cephalic_cutdown")[0],
+                         "explicit_non_use")
+
     def test_ultrasound_aliases_and_review(self):
         for term in ["USG", "USG-guided", "US guidance", "US guided", "US guidence", "U/S",
                      "ultrsound", "ultrasoud", "ultrasond", "ultrasounnd", "ultrsaound"]:
@@ -81,19 +113,26 @@ class ExtractionTests(unittest.TestCase):
                 writer.writerow(dict(phi_mrn="00012345", note_id="b", full_note="No access description."))
                 writer.writerow(dict(phi_mrn="00012345", note_id="c",
                                      full_note="Venous access obtained with USG guidance."))
+                writer.writerow(dict(phi_mrn="00012345", note_id="d", full_note=ACCESS_COURSE_NOTE))
             subprocess.run([sys.executable, str(Path(__file__).with_name("parse_micropuncture.py")),
-                            str(source), str(target)], check=True, capture_output=True)
+                            str(source), str(target), "--include-evidence"], check=True, capture_output=True)
             with target.open(newline="", encoding="utf-8") as handle:
                 rows = list(csv.DictReader(handle))
-            self.assertEqual(len(rows), 3)
+            self.assertEqual(len(rows), 4)
             self.assertEqual(rows[0]["phi_mrn"], "00012345")
             self.assertEqual(rows[0]["micropuncture_used"], "1")
             self.assertEqual(rows[1]["micropuncture_used"], "")
-            self.assertNotIn("micropuncture_evidence", rows[0])
+            self.assertIn("micropuncture needle", rows[0]["micropuncture_evidence"])
             self.assertEqual(rows[2]["ultrasound_used"], "1")
             self.assertEqual(rows[2]["ultrasound_needs_review"], "1")
             self.assertEqual(rows[2]["ultrasound_variant_match"], "1")
             self.assertEqual(rows[2]["ultrasound_matched_terms"], "USG")
+            self.assertEqual(rows[3]["access_course_needs_review"], "1")
+            self.assertEqual(rows[3]["access_difficulty_or_attempt"], "1")
+            self.assertEqual(rows[3]["access_conversion"], "1")
+            self.assertEqual(rows[3]["cephalic_cutdown_used"], "1")
+            self.assertIn("would not advance", rows[3]["access_difficulty_evidence"])
+            self.assertIn("cephalic vein cutdown", rows[3]["access_conversion_evidence"])
 
 
 if __name__ == "__main__":

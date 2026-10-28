@@ -25,12 +25,40 @@ TERMS = {
     "ultrasound": re.compile(ULTRASOUND_PATTERN, re.I),
     "fluoroscopy": re.compile(r"\b(?:fluoro(?:scop\w*)?|fluroscop\w*)\b", re.I),
     "venogram": re.compile(r"\b(?:veno(?:gram\w*|graph\w*)|venous\s+angiograph\w*)\b", re.I),
+    "cephalic_cutdown": re.compile(r"\bcephalic(?:\s+vein)?\s+cut[\s-]*down\b", re.I),
 }
 ACCESS = re.compile(
     r"\b(?:venous\s+access|vascular\s+access|access\s+(?:was\s+)?obtained|"
     r"(?:axillary|subclavian|cephalic|femoral|jugular)\s+vein|"
     r"venipuncture|cannulat\w*|punctur\w*|needle)\b", re.I)
 GUIDANCE = re.compile(r"\b(?:guid\w*|using|under|with|performed|obtained)\b", re.I)
+ACCESS_COURSE_CONTEXT = re.compile(
+    r"\b(?:access|vein|venous|wire|needle|cannulat\w*|punctur\w*|cut[ -]*down)\b", re.I)
+DIFFICULTY = re.compile(
+    r"\b(?:attempt(?:ed|s)?|unsuccessful|failed|unable|difficult\w*|"
+    r"tortuos\w*|spasm\w*|(?:would|could|did)\s+not\s+(?:advance|pass)|"
+    r"resistance)\b", re.I)
+CONVERSION = re.compile(
+    r"\b(?:convert(?:ed|ing)?|switch(?:ed|ing)?|abandon(?:ed|ing)?|"
+    r"(?:then\s+)?proceeded\s+to\s+(?:perform\s+)?(?:a\s+)?"
+    r"cephalic(?:\s+vein)?\s+cut[ -]*down)\b", re.I)
+
+
+def access_course(note):
+    """Review signals only: do not infer which technique ultimately succeeded."""
+    text = re.sub(r"\s+", " ", unicodedata.normalize("NFKC", note or "")).strip()
+    sentences = [s.strip() for s in re.split(r"(?<=[.;!?])\s*", text) if s.strip()]
+    difficulty, conversion = [], []
+    for index, sentence in enumerate(sentences):
+        if not ACCESS_COURSE_CONTEXT.search(sentence):
+            continue
+        # Include adjacent sentences so a failure following a technique is visible.
+        evidence = " ".join(sentences[max(0, index - 1):index + 2])
+        if DIFFICULTY.search(sentence):
+            difficulty.append(evidence)
+        if CONVERSION.search(sentence):
+            conversion.append(evidence)
+    return list(dict.fromkeys(difficulty)), list(dict.fromkeys(conversion))
 NEGATIVE = re.compile(
     r"\b(?:no|without)\s+(?:a\s+|an\s+)?(?:use\s+of\s+(?:a\s+)?)?$|"
     r"\b(?:did\s+not|never)\s+(?:use|utilize|employ)\s+(?:a\s+)?$", re.I)
@@ -77,6 +105,7 @@ def classify(note, technique="micropuncture"):
         elif UNCERTAIN.search(context) or re.search(r"\bnot\b", context, re.I):
             label = "uncertain_mention"
         elif (ACTION.search(context) or
+              (technique == "cephalic_cutdown" and re.search(r"\bperform(?:ed)?\b", context, re.I)) or
               (technique != "micropuncture" and GUIDANCE.search(context)) or
               (technique == "venogram" and re.search(r"\bfor\s+venous\s+access\b", context, re.I))):
             label = "documented_use"
@@ -92,7 +121,8 @@ def classify(note, technique="micropuncture"):
     value = {"documented_use": "1", "explicit_non_use": "0"}.get(status, "")
     variant = technique == "ultrasound" and any(
         not ULTRASOUND_STANDARD.fullmatch(match.group()) for match in mentions)
-    review = int(variant or status in {"uncertain_mention", "mixed_mentions", "mention_without_access_context"})
+    course_review = any(access_course(normalized))
+    review = int(variant or course_review or status in {"uncertain_mention", "mixed_mentions", "mention_without_access_context"})
     return status, value, review, list(dict.fromkeys(evidence)), len(mentions)
 
 
@@ -133,6 +163,9 @@ def main():
             if args.include_evidence:
                 fields.append(technique + "_evidence")
         fields += ["ultrasound_matched_terms", "ultrasound_variant_match"]
+        fields += ["access_difficulty_or_attempt", "access_conversion", "access_course_needs_review"]
+        if args.include_evidence:
+            fields += ["access_difficulty_evidence", "access_conversion_evidence"]
         # Exclusive creation prevents silently replacing an existing results file.
         with args.output.open("x", newline="", encoding="utf-8") as target:
             writer = csv.DictWriter(target, fieldnames=fields)
@@ -142,6 +175,14 @@ def main():
                     raise ValueError(f"Malformed CSV record {row_number}; check quoting/columns. Output is incomplete.")
                 result = {name: row[name] for name in IDENTIFIERS if name in headers}
                 result.update(input_row_number=row_number, needs_review=0, mention_count=0)
+                difficulty, conversion = access_course(row[args.note_column])
+                result["access_difficulty_or_attempt"] = int(bool(difficulty))
+                result["access_conversion"] = int(bool(conversion))
+                result["access_course_needs_review"] = int(bool(difficulty or conversion))
+                result["needs_review"] = result["access_course_needs_review"]
+                if args.include_evidence:
+                    result["access_difficulty_evidence"] = " || ".join(difficulty)
+                    result["access_conversion_evidence"] = " || ".join(conversion)
                 ultrasound_terms = [m.group() for m in TERMS["ultrasound"].finditer(
                     unicodedata.normalize("NFKC", row[args.note_column]))]
                 result["ultrasound_matched_terms"] = "; ".join(dict.fromkeys(ultrasound_terms))
