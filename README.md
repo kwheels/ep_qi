@@ -1,5 +1,7 @@
 # Access technique documentation extraction
 
+Ultrasound aliases now include `USG`, `USG-guided`, `U/S`, `US guidance`, `US guided`, and the explicit spelling variants `ultrsound`, `ultrasoud`, `ultrasond`, `ultrasounnd`, and `ultrsaound`. `US` before `guideance`, `guidence`, or `guidiance` is also recognized. All abbreviation/spelling-variant matches set `ultrasound_variant_match=1` and `ultrasound_needs_review=1` (and overall `needs_review=1`), even when access use is classified as documented. `ultrasound_matched_terms` shows the actual matched terms without requiring evidence output; `--include-evidence` still includes the surrounding original text. Use flags remain provisional until manual review. Matching uses an explicit alias list, so arbitrary unlisted typos are not guaranteed to be found. Bare `US` remains excluded to avoid matching the pronoun or country abbreviation.
+
 The parser now extracts four separate techniques: **micropuncture, ultrasound, fluoroscopy, and venogram/venography**. Co-use is allowed; venography does not automatically imply fluoroscopic access. Use the general entry point (keep both Python scripts together):
 
 ```bash

@@ -13,9 +13,16 @@ from collections import Counter
 from pathlib import Path
 
 TERM = re.compile(r"\bmicro[\s-]*puncture\b", re.I)
+# Explicit aliases keep matching auditable; avoid unrestricted fuzzy matching.
+ULTRASOUND_STANDARD = re.compile(r"(?:ultra[\s-]*sound|ultrasonograph\w*)", re.I)
+ULTRASOUND_PATTERN = (
+    r"\b(?:ultra[\s-]*sound|ultrasonograph\w*|"
+    r"USG|U/S|US(?=[\s-]+(?:guided|guidance|guideance|guidence|guidiance)\b)|"
+    r"ultrsound|ultrasoud|ultrasond|ultrasounnd|ultrsaound)\b"
+)
 TERMS = {
     "micropuncture": TERM,
-    "ultrasound": re.compile(r"\b(?:ultra[\s-]*sound|ultrasonograph\w*|US[ -]guided)\b", re.I),
+    "ultrasound": re.compile(ULTRASOUND_PATTERN, re.I),
     "fluoroscopy": re.compile(r"\b(?:fluoro(?:scop\w*)?|fluroscop\w*)\b", re.I),
     "venogram": re.compile(r"\b(?:veno(?:gram\w*|graph\w*)|venous\s+angiograph\w*)\b", re.I),
 }
@@ -83,7 +90,9 @@ def classify(note, technique="micropuncture"):
     status = (next(iter(relevant)) if len(relevant) == 1 else
               "mixed_mentions" if relevant else "mention_without_access_context")
     value = {"documented_use": "1", "explicit_non_use": "0"}.get(status, "")
-    review = int(status in {"uncertain_mention", "mixed_mentions", "mention_without_access_context"})
+    variant = technique == "ultrasound" and any(
+        not ULTRASOUND_STANDARD.fullmatch(match.group()) for match in mentions)
+    review = int(variant or status in {"uncertain_mention", "mixed_mentions", "mention_without_access_context"})
     return status, value, review, list(dict.fromkeys(evidence)), len(mentions)
 
 
@@ -123,6 +132,7 @@ def main():
                        technique + "_needs_review", technique + "_mention_count"]
             if args.include_evidence:
                 fields.append(technique + "_evidence")
+        fields += ["ultrasound_matched_terms", "ultrasound_variant_match"]
         # Exclusive creation prevents silently replacing an existing results file.
         with args.output.open("x", newline="", encoding="utf-8") as target:
             writer = csv.DictWriter(target, fieldnames=fields)
@@ -132,6 +142,11 @@ def main():
                     raise ValueError(f"Malformed CSV record {row_number}; check quoting/columns. Output is incomplete.")
                 result = {name: row[name] for name in IDENTIFIERS if name in headers}
                 result.update(input_row_number=row_number, needs_review=0, mention_count=0)
+                ultrasound_terms = [m.group() for m in TERMS["ultrasound"].finditer(
+                    unicodedata.normalize("NFKC", row[args.note_column]))]
+                result["ultrasound_matched_terms"] = "; ".join(dict.fromkeys(ultrasound_terms))
+                result["ultrasound_variant_match"] = int(any(
+                    not ULTRASOUND_STANDARD.fullmatch(term) for term in ultrasound_terms))
                 used = []
                 for technique in TERMS:
                     status, value, review, evidence, mentions = classify(row[args.note_column], technique)

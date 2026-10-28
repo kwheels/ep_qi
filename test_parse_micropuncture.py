@@ -9,6 +9,26 @@ from parse_micropuncture import classify
 
 
 class ExtractionTests(unittest.TestCase):
+    def test_ultrasound_aliases_and_review(self):
+        for term in ["USG", "USG-guided", "US guidance", "US guided", "US guidence", "U/S",
+                     "ultrsound", "ultrasoud", "ultrasond", "ultrasounnd", "ultrsaound"]:
+            with self.subTest(term=term):
+                status, used, review, evidence, count = classify(
+                    "Venous access was obtained using " + term + ".", "ultrasound")
+                self.assertEqual((status, used, review, count), ("documented_use", "1", 1, 1))
+                self.assertIn(term, evidence[0])
+        self.assertEqual(classify("Venous access obtained without USG.", "ultrasound")[:3],
+                         ("explicit_non_use", "0", 1))
+        self.assertEqual(classify("USG was considered for venous access.", "ultrasound")[:3],
+                         ("uncertain_mention", "", 1))
+        self.assertEqual(classify("USG showed no effusion.", "ultrasound")[0],
+                         "mention_without_access_context")
+        self.assertEqual(classify("The patient asked us about venous access.", "ultrasound")[0],
+                         "not_mentioned")
+        self.assertEqual(classify("Discuss access in the US guidelines.", "ultrasound")[0],
+                         "not_mentioned")
+        self.assertEqual(classify("Venous access obtained using ultrasound.", "ultrasound")[2], 0)
+
     def test_access_guidance(self):
         cases = [
             ("Ultrasound-guided axillary vein access was obtained.", "ultrasound", "documented_use"),
@@ -59,15 +79,21 @@ class ExtractionTests(unittest.TestCase):
                 writer.writerow(dict(phi_mrn="00012345", note_id="a",
                                      full_note='PROCEDURE:\nA micropuncture needle was inserted, using "guidance".'))
                 writer.writerow(dict(phi_mrn="00012345", note_id="b", full_note="No access description."))
+                writer.writerow(dict(phi_mrn="00012345", note_id="c",
+                                     full_note="Venous access obtained with USG guidance."))
             subprocess.run([sys.executable, str(Path(__file__).with_name("parse_micropuncture.py")),
                             str(source), str(target)], check=True, capture_output=True)
             with target.open(newline="", encoding="utf-8") as handle:
                 rows = list(csv.DictReader(handle))
-            self.assertEqual(len(rows), 2)
+            self.assertEqual(len(rows), 3)
             self.assertEqual(rows[0]["phi_mrn"], "00012345")
             self.assertEqual(rows[0]["micropuncture_used"], "1")
             self.assertEqual(rows[1]["micropuncture_used"], "")
             self.assertNotIn("micropuncture_evidence", rows[0])
+            self.assertEqual(rows[2]["ultrasound_used"], "1")
+            self.assertEqual(rows[2]["ultrasound_needs_review"], "1")
+            self.assertEqual(rows[2]["ultrasound_variant_match"], "1")
+            self.assertEqual(rows[2]["ultrasound_matched_terms"], "USG")
 
 
 if __name__ == "__main__":
