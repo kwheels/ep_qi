@@ -154,8 +154,8 @@ def dumps(value):
     return json.dumps(value, default=str, ensure_ascii=False, sort_keys=True)
 
 
-def write_csv(path, fields, rows):
-    with path.open("x", newline="", encoding="utf-8") as handle:
+def write_csv(path, fields, rows, overwrite=False):
+    with path.open("w" if overwrite else "x", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)

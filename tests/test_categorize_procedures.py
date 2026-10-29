@@ -58,6 +58,12 @@ class ProcedureCategoryTests(unittest.TestCase):
                 self.assertEqual(rows[mrn]["note_access_eligible"], "0")
             self.assertEqual(rows["7"]["generator_miheart_check"], "1")
             self.assertEqual(rows["8"]["eligibility_status"], "excluded_missing_procedures_section")
+            marker = output / "my_notes.md"
+            marker.write_text("keep me")
+            categorize_inventory(inventory, output)
+            self.assertEqual(marker.read_text(), "keep me")
+            with (output / "procedure_eligibility.csv").open(newline="", encoding="utf-8") as handle:
+                self.assertEqual(len(list(csv.DictReader(handle))), 9)
 
 
 if __name__ == "__main__":

@@ -8,12 +8,15 @@ import csv
 import re
 import sys
 from collections import Counter, defaultdict
+from functools import partial
 from pathlib import Path
 
 try:
     from .reconcile_access import mrn_text, date_text, write_csv
 except ImportError:
     from reconcile_access import mrn_text, date_text, write_csv
+
+write_csv = partial(write_csv, overwrite=True)
 
 
 def has(pattern, text):
@@ -83,8 +86,6 @@ def procedure_key(row):
 
 
 def run(inventory, output):
-    if output.exists():
-        raise ValueError("Choose a new output directory.")
     limit = sys.maxsize
     while True:
         try:
@@ -141,7 +142,7 @@ def run(inventory, output):
                            source_rows="; ".join(r["source_row"] for r in note_rows)))
     if not cohort:
         raise ValueError("No procedure records in inventory.")
-    output.mkdir(parents=True, exist_ok=False)
+    output.mkdir(parents=True, exist_ok=True)
     index_rows = [dict(procedure_label=v["procedure_label"], category=v["category"],
                        qualifying_implant_item=int(v["category"] in QUALIFYING), procedure_count=len(v["procedures"]),
                        source_note_count=len(v["notes"]), reviewed_category="")
@@ -152,8 +153,10 @@ def run(inventory, output):
     write_csv(output / "procedure_eligibility_review.csv", list(cohort[0]), [r for r in cohort if r["needs_review"]])
     write_csv(output / "excluded_missing_sections.csv", list(cohort[0]),
               [r for r in cohort if r["eligibility_status"] == "excluded_missing_procedures_section"])
-    if items:
-        write_csv(output / "categorized_items.csv", list(items[0]), items)
+    item_fields = list(items[0]) if items else ["source_row", "mrn", "procedure_date", "note_id",
+        "item_number", "procedure_label", "original_item", "needs_review", "review_reason",
+        "category", "qualifying_implant_item"]
+    write_csv(output / "categorized_items.csv", item_fields, items)
     print("Procedure eligibility: " + str(dict(Counter(r["eligibility_status"] for r in cohort))))
     print("Procedures needing review: " + str(sum(r["needs_review"] for r in cohort)))
 

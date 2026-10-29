@@ -31,7 +31,7 @@ python3 -m pip install --user -r requirements.txt
 python3 scripts/index_procedures.py --help
 ```
 
-Use a new, versioned output directory under `/home/kwheels/cied_complications/` for each run. Keep original source files unchanged. Do not commit patient notes, identifiers, Excel workbooks or generated CSVs. `.gitignore` excludes common research data/output formats; still inspect staged files before committing.
+Keep output folders under `/home/kwheels/cied_complications/`. Procedure inventory and categorization tools reuse existing directories, replacing their named generated CSVs and preserving unrelated files. Regeneration also resets editable review columns in those generated files; save reviewed copies under another filename. Other tools retain their documented overwrite behavior. Keep original source files unchanged. Do not commit patient notes, identifiers, Excel workbooks or generated CSVs. `.gitignore` excludes common research data/output formats; still inspect staged files before committing.
 
 ## Testing
 

@@ -54,6 +54,12 @@ class ProcedureIndexTests(unittest.TestCase):
             self.assertEqual(rows[0]["patient_count"], "1")
             self.assertEqual(rows[0]["source_note_count"], "3")
             self.assertEqual(rows[0]["loop_recorder_term"], "1")
+            marker = output / "my_notes.md"
+            marker.write_text("keep me")
+            run(path, output)
+            self.assertEqual(marker.read_text(), "keep me")
+            with (output / "procedure_index.csv").open(newline="", encoding="utf-8") as handle:
+                self.assertEqual(len(list(csv.DictReader(handle))), 1)
 
 
 if __name__ == "__main__":

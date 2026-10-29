@@ -9,9 +9,13 @@ import re
 import sys
 import unicodedata
 from collections import Counter
+from functools import partial
 from pathlib import Path
 
 from reconcile_access import date_text, mrn_text, write_csv
+
+# Inventory outputs may be regenerated in the user's fixed output directory.
+write_csv = partial(write_csv, overwrite=True)
 
 START = re.compile(r"\bPROCEDURES?\s+PERFORMED\s*:", re.I)
 END = re.compile(r"\bAN(?:A)?ESTHESIA\s*:", re.I)
@@ -78,8 +82,9 @@ def header_choice(headers, choices):
 
 
 def run(input_path, output_dir):
-    if output_dir.exists():
-        raise ValueError("Output directory already exists; choose a new name.")
+    names = ["procedure_index.csv", "procedure_records.csv", "procedure_items.csv", "procedure_extraction_review.csv"]
+    if any(input_path.resolve() == (output_dir / name).resolve() for name in names):
+        raise ValueError("Input must not be one of the generated output files.")
     limit = sys.maxsize
     while True:
         try:
@@ -140,7 +145,7 @@ def run(input_path, output_dir):
                                item_mention_count=entry["mentions"], invalid_key_note_count=len(entry["invalid_rows"]),
                                loop_recorder_term=int(bool(LOOP.search(entry["label"]))),
                                label_variants=" | ".join(sorted(entry["variants"])), review_category=""))
-    output_dir.mkdir(parents=True, exist_ok=False)
+    output_dir.mkdir(parents=True, exist_ok=True)
     index_fields = ["procedure_label", "procedure_count", "patient_count", "source_note_count",
                     "item_mention_count", "invalid_key_note_count", "loop_recorder_term", "label_variants", "review_category"]
     write_csv(output_dir / "procedure_index.csv", index_fields, index_rows)

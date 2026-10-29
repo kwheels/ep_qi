@@ -66,7 +66,7 @@ Index labels strip text after the first colon, which commonly contains device ma
 
 A procedure containing a loop-recorder item and another intervention must be reviewed as a whole; the keyword flag does not mean loop-recorder-only or prove the absence of venous access. Counts refer to procedures/components documented in this partial notes collection, not the entire database. Totals across procedure labels overlap because multiple components can occur in one procedure. No cohort or R analysis is changed.
 
-Output directory must be new. Outputs may contain PHI and remain local; do not upload them to GitHub. Use the original notes CSV containing `full_note`, not `access_technique_reviewed.csv`.
+Both inventory and categorization output directories may already exist. Their named generated CSVs are replaced on rerun; unrelated files are preserved. Regeneration resets editable fields such as `review_category` and `reviewed_category`, so save adjudicated copies under a different filename before rerunning. Outputs may contain PHI and remain local; do not upload them to GitHub. Use the original notes CSV containing `full_note`, not `access_technique_reviewed.csv`.
 
 ```bash
 python3 -m unittest discover -s tests -p test_index_procedures.py -v
