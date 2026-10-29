@@ -2,6 +2,7 @@
 
 - Put implementation and new command-line tools in `scripts/`.
 - Put R analyses and their helpers in `analysis/`; keep synthetic R checks in `tests/`.
+- Target R 4.5.1 ("Great Square Root") on Armis2. All R code must support that version. Local R 4.6.1 checks are not proof of execution on 4.5.1; distinguish the tested runtime. Check package-version requirements as well as R syntax before introducing new APIs.
 - Put automated tests in `tests/`; use synthetic data only.
 - Put workflow instructions and output-column definitions in `docs/`.
 - Keep the root README as a short navigation guide; update its workflow table when adding tools.

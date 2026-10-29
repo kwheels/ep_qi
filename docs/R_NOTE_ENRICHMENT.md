@@ -1,5 +1,7 @@
 # Preliminary note-enriched PTX analysis
 
+Target runtime: **R 4.5.1 (Great Square Root) on Armis2**. All R changes must remain compatible with that version. Local checks currently use R 4.6.1; report that runtime accurately rather than treating those checks as execution on 4.5.1. Package availability/version requirements must also be checked. The existing `join_by()` usage requires dplyr 1.1+ independently of the R version.
+
 Run from the repository root on Armis2:
 
 ```bash
