@@ -24,6 +24,18 @@ class ProcedureIndexTests(unittest.TestCase):
         self.assertIn("unbulleted_section_review_splitting", extract("PROCEDURES PERFORMED: Loop recorder insertion ANESTHESIA: Local")[2])
         self.assertIn("multiple_procedures_sections", extract("PROCEDURES PERFORMED: - Implant ANESTHESIA: Local PROCEDURES PERFORMED: - Other ANESTHESIA: Local")[2])
 
+    def test_all_duplicate_sections_and_no_discharge_spill(self):
+        text = ("PROCEDURES PERFORMED:\n- ILR removal\nANESTHESIA: Local\n"
+                "RECOMMENDATION:\n- Wash your incision with soap\n"
+                "PROCEDURES PERFORMED:\n- Pacemaker insertion\nANESTHESIA: General")
+        items, _, flags = extract(text)
+        self.assertEqual(items, ["ILR removal", "Pacemaker insertion"])
+        self.assertIn("multiple_procedures_sections", flags)
+        text = "PROCEDURES PERFORMED:\n- ICD insertion\nRECOMMENDATION:\n- Wash your incision"
+        items, _, flags = extract(text)
+        self.assertEqual(items, ["ICD insertion"])
+        self.assertIn("alternative_section_boundary", flags)
+
     def test_frequency_counts_distinct_procedures_and_patients(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as directory:
             folder = Path(directory)

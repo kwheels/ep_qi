@@ -15,6 +15,13 @@ from reconcile_access import date_text, mrn_text, write_csv
 
 START = re.compile(r"\bPROCEDURES?\s+PERFORMED\s*:", re.I)
 END = re.compile(r"\bAN(?:A)?ESTHESIA\s*:", re.I)
+OTHER_END = re.compile(
+    r"\b(?:HISTORY|CONSENT(?:\s+AND\s+TIME\s+OUT)?|PROCEDURE\s+AND\s+DETAILS|"
+    r"RECOMMENDATIONS?|CONCLUSIONS?|COMPLICATIONS?|DEVICE\s+SYSTEM|"
+    r"ACTIVE\s+HARDWARE|ABANDONED\s+HARDWARE|MEASURED\s+DEVICE\s+DATA|"
+    r"PROGRAMMED\s+PARAMETERS|BLOOD\s+LOSS|NAME|MRN)\s*:|"
+    r"(?:^|\n)\s*(?:Incision\s+Care\s+Instructions|Activity\s+restrictions|"
+    r"Other\s+Discharge\s+Instructions)\s*\.?", re.I)
 BULLET = re.compile(r"(?:^|\n)\s*(?:[-*\u2022]|\d+[.)])\s+|[ \t]+[-\u2022][ \t]+")
 LOOP = re.compile(r"\b(?:loop\s+recorder|implantable\s+(?:cardiac|heart)\s+monitor|ILR|ICM)\b", re.I)
 
@@ -24,22 +31,36 @@ def extract(note):
     starts = list(START.finditer(text))
     if not starts:
         return [], "", ["missing_procedures_section"]
-    start = starts[0]
-    end = END.search(text, start.end())
-    if not end:
-        return [], "", ["missing_anesthesia_boundary"]
-    block = text[start.end():end.start()].strip()
     issues = ["multiple_procedures_sections"] if len(starts) > 1 else []
-    if not block:
-        return [], block, issues + ["empty_procedures_section"]
-    if BULLET.search(block):
-        items = [re.sub(r"\s+", " ", item).strip() for item in BULLET.split(block)]
-        items = [item for item in items if item]
-    else:
-        # Do not guess which wrapped lines represent separate interventions.
-        items = [re.sub(r"\s+", " ", block).strip()]
-        issues.append("unbulleted_section_review_splitting")
-    return items, block, issues
+    items, blocks = [], []
+    for number, start in enumerate(starts):
+        next_start = starts[number + 1].start() if number + 1 < len(starts) else len(text)
+        anesthesia = END.search(text, start.end(), next_start)
+        other = OTHER_END.search(text, start.end(), next_start)
+        ends = [(m.start(), kind) for m, kind in [(anesthesia, "anesthesia"), (other, "other")] if m]
+        if ends:
+            stop, kind = min(ends)
+            if kind != "anesthesia":
+                issues.append("alternative_section_boundary")
+        elif number + 1 < len(starts):
+            stop = next_start
+            issues.append("next_procedures_heading_boundary")
+        else:
+            # No trustworthy end: keep this section out of automated counts.
+            issues.append("missing_anesthesia_boundary")
+            continue
+        block = text[start.end():stop].strip()
+        blocks.append(block)
+        if not block:
+            issues.append("empty_procedures_section")
+            continue
+        if BULLET.search(block):
+            parts = [re.sub(r"\s+", " ", item).strip(" -\u2022*") for item in BULLET.split(block)]
+            items.extend(item for item in parts if item)
+        else:
+            items.append(re.sub(r"\s+", " ", block).strip())
+            issues.append("unbulleted_section_review_splitting")
+    return items, "\n\n[NEXT PROCEDURES SECTION]\n\n".join(blocks), list(dict.fromkeys(issues))
 
 
 def procedure_label(item):

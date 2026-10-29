@@ -21,6 +21,7 @@ Small Python files at the repository root preserve previously shared commands. T
 | Clean reviewed labels and compare databases | `scripts/reconcile_access.py` | [Reconciliation](docs/RECONCILIATION.md) |
 | Make a compact discrepancy review | `scripts/format_access_review.py` | [Reconciliation](docs/RECONCILIATION.md#compact-discrepancy-review) |
 | Index procedures performed | `scripts/index_procedures.py` | [Procedure inventory](docs/PROCEDURE_INDEX.md) |
+| Categorize procedures and propose access eligibility | `scripts/categorize_procedures.py` | [Categorization](docs/PROCEDURE_INDEX.md#categorization-and-access-cohort) |
 
 Run from the repository root on Armis2:
 
