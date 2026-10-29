@@ -32,5 +32,5 @@ A procedure containing a loop-recorder item and another intervention must be rev
 Output directory must be new. Outputs may contain PHI and remain local; do not upload them to GitHub. Use the original notes CSV containing `full_note`, not `access_technique_reviewed.csv`.
 
 ```bash
-python3 -m unittest -v test_index_procedures.py
+python3 -m unittest discover -s tests -p test_index_procedures.py -v
 ```

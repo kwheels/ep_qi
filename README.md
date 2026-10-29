@@ -1,54 +1,45 @@
-# Access technique documentation extraction
+# CIED procedure analysis utilities
 
-Cephalic vein cutdown is now a fifth separately extracted technique (`cephalic_cutdown_status`, `_used`, `_needs_review`, `_mention_count`, and optional `_evidence`). The parser also supplies `access_difficulty_or_attempt`, `access_conversion`, and `access_course_needs_review`. These are review signals, not adjudicated success/failure or final access labels. Difficulty detection includes attempts, inability to advance a wire, spasm, and tortuosity in access-related sentences. Conversion detection includes switching/conversion language and proceeding to cephalic cutdown. With `--include-evidence`, `access_difficulty_evidence` and `access_conversion_evidence` retain the matched sentence plus adjacent sentences. A course flag sets overall `needs_review=1` and flags all mentioned techniques for review, including otherwise affirmative findings. No-mention techniques retain their status; absence is not evidence of non-use.
+Python tools for extracting procedure-note information and comparing reviewed access techniques with the procedure databases. Research inputs and generated results stay outside version control.
 
-Technique `_used` columns describe documentation, not successful final access. A procedure can document ultrasound use followed by wire failure and subsequent cutdown; the ultrasound finding must not be reclassified as non-use. Existing uncertain/mixed labels remain conservative. Neither a cutdown mention nor a conversion flag automatically establishes final successful access; review the sequence manually. Venography is included in the venogram matcher. If a note visibly containing venography is labeled `not_mentioned`, first update with `git pull`, regenerate to a new output file, and check that the note IDs correspond.
+## Repository layout
 
-Ultrasound aliases now include `USG`, `USG-guided`, `U/S`, `US guidance`, `US guided`, and the explicit spelling variants `ultrsound`, `ultrasoud`, `ultrasond`, `ultrasounnd`, and `ultrsaound`. `US` before `guideance`, `guidence`, or `guidiance` is also recognized. All abbreviation/spelling-variant matches set `ultrasound_variant_match=1` and `ultrasound_needs_review=1` (and overall `needs_review=1`), even when access use is classified as documented. `ultrasound_matched_terms` shows the actual matched terms without requiring evidence output; `--include-evidence` still includes the surrounding original text. Use flags remain provisional until manual review. Matching uses an explicit alias list, so arbitrary unlisted typos are not guaranteed to be found. Bare `US` remains excluded to avoid matching the pronoun or country abbreviation.
-
-The parser now extracts four separate techniques: **micropuncture, ultrasound, fluoroscopy, and venogram/venography**. Co-use is allowed; venography does not automatically imply fluoroscopic access. Use the general entry point (keep both Python scripts together):
-
-```bash
-python3 parse_access_techniques.py procedure_notes.csv access_technique_results.csv --include-evidence
+```text
+scripts/           Implementation and command-line tools
+tests/             Automated checks using synthetic data
+docs/              Usage instructions and field definitions
+requirements.txt   Excel-reader dependency
 ```
 
-The original `parse_micropuncture.py` command also produces the expanded output. Each technique has its own `_status`, `_used`, `_needs_review`, and `_mention_count` columns, plus `_evidence` when requested. `_used` is 1 for documented use, 0 for explicit non-use in the recognized context, and blank otherwise. `access_technique` lists documented positive techniques separated by semicolons; the overall `needs_review` flags any technique requiring review. The overall `mention_count` now counts mentions across all four techniques.
+Small Python files at the repository root preserve previously shared commands. They delegate to `scripts/`; make future implementation changes in `scripts/` only. New tools should be added there, without another root compatibility file.
 
-Ultrasound, fluoroscopy and venography require access-related language in the local sentence window. Routine lead-position fluoroscopy, fluoroscopy time, and ultrasound for effusion checks receive `mention_without_access_context` (blank `_used`, review flagged). Such mentions do not override a separate affirmative access sentence. A procedures-performed entry such as "Upper extremity venogram for venous access" counts as documented use. Bare `US` is not matched because it is ambiguous; `US-guided` is recognized. Planned, attempted, historical and conflicting mentions remain review cases. The limited local context rules can still misattribute imaging to access when both appear in the same sentence or miss access context documented in another sentence. Review evidence before final adjudication.
+## Workflows
 
-For the supplied example, the expected results are micropuncture=1, fluoroscopy=1 and venogram=1, with ultrasound blank/not mentioned.
+| Task | Script | Instructions |
+| --- | --- | --- |
+| Extract access techniques | `scripts/parse_access_techniques.py` | [Access extraction](docs/ACCESS_EXTRACTION.md) |
+| Clean reviewed labels and compare databases | `scripts/reconcile_access.py` | [Reconciliation](docs/RECONCILIATION.md) |
+| Make a compact discrepancy review | `scripts/format_access_review.py` | [Reconciliation](docs/RECONCILIATION.md#compact-discrepancy-review) |
+| Index procedures performed | `scripts/index_procedures.py` | [Procedure inventory](docs/PROCEDURE_INDEX.md) |
 
-Copy `parse_micropuncture.py` to Armis2 and run with Python 3. No additional packages or network access are needed.
-
-```bash
-python3 parse_micropuncture.py procedure_notes.csv micropuncture_results.csv
-```
-
-Optional matching excerpts for review (these may contain PHI):
-
-```bash
-python3 parse_micropuncture.py procedure_notes.csv micropuncture_review.csv --include-evidence
-```
-
-Input must be a complete CSV, with the supplied header and properly quoted multiline `full_note` cells. A pasted fragment beginning with a header followed directly by narrative is not a complete CSV record. The standard CSV reader handles embedded commas, quotes and line breaks. Default encoding is UTF-8 with optional BOM; use `--encoding cp1252` if required by the actual export. Output files must not already exist.
-
-The output retains available procedure identifiers, both MRN columns, dates, candidate count and date difference. All identifiers remain strings, including leading zeros; import MRN columns as text when opening in Excel. One output row corresponds to one input report. Reports are not deduplicated or collapsed to patients, and candidate reports are not assumed to be confirmed matches to index procedures.
-
-| Status | micropuncture_used | Meaning |
-|---|---|---|
-| documented_use | 1 | Micropuncture mention with action language |
-| explicit_non_use | 0 | Recognized explicit negation |
-| not_mentioned | blank | No recognized micropuncture term |
-| missing_note | blank | Empty narrative; review flagged |
-| uncertain_mention | blank | Ambiguous, planned, historical or attempted use; review flagged |
-| mixed_mentions | blank | Different classifications within one report; review flagged |
-
-The rules recognize `micropuncture`, `micro-puncture` and `micro puncture`, including wrapped words. Needle gauge alone is not considered evidence. These are conservative text rules, not validated clinical classifications. They do not reliably resolve all negation, historical references, procedure sections, venous versus arterial access, or multiple access sites. A documented-use label indicates an apparent affirmative mention; it does not establish successful venous access. Review flagged records and a sample of positive and no-mention records before using results to update the research database. Missing mention must not automatically become non-use. Confirm candidate report matching using the retained identifiers and dates.
-
-Evidence excerpts are omitted by default, and console output contains aggregate counts only. Run on Armis2 with the source data there; the script does not transmit data. Outputs contain MRNs and should remain in the appropriate research location. On a malformed CSV, processing stops and the output may be incomplete; correct the input and use a new output filename.
-
-Synthetic checks:
+Run from the repository root on Armis2:
 
 ```bash
-python3 -m unittest -v test_parse_micropuncture.py
+git pull
+python3 -m pip install --user -r requirements.txt
+python3 scripts/index_procedures.py --help
 ```
+
+Use a new, versioned output directory under `/home/kwheels/cied_complications/` for each run. Keep original source files unchanged. Do not commit patient notes, identifiers, Excel workbooks or generated CSVs. `.gitignore` excludes common research data/output formats; still inspect staged files before committing.
+
+## Testing
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+These tests use synthetic examples. They verify expected code behavior, not clinical validity or extraction accuracy across real notes.
+
+## Adding or changing a tool
+
+Place implementations in `scripts/`, synthetic tests in `tests/`, and usage/column definitions in `docs/`. Update this workflow table and [CHANGELOG.md](CHANGELOG.md) when behavior changes. Preserve existing command compatibility when practical. Keep real patient examples and generated results local.

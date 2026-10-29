@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""General entry point; keep parse_micropuncture.py alongside this file."""
-from parse_micropuncture import main
+"""Compatibility entry point; implementation lives in scripts/."""
+from scripts.parse_access_techniques import *
 
 if __name__ == "__main__":
     main()

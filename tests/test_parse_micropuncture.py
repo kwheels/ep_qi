@@ -114,7 +114,7 @@ class ExtractionTests(unittest.TestCase):
                 writer.writerow(dict(phi_mrn="00012345", note_id="c",
                                      full_note="Venous access obtained with USG guidance."))
                 writer.writerow(dict(phi_mrn="00012345", note_id="d", full_note=ACCESS_COURSE_NOTE))
-            subprocess.run([sys.executable, str(Path(__file__).with_name("parse_micropuncture.py")),
+            subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] / "scripts" / "parse_micropuncture.py"),
                             str(source), str(target), "--include-evidence"], check=True, capture_output=True)
             with target.open(newline="", encoding="utf-8") as handle:
                 rows = list(csv.DictReader(handle))

@@ -125,7 +125,7 @@ class ReconciliationTests(unittest.TestCase):
                 book.save(folder / filename)
                 book.close()
             output = folder / "output"
-            subprocess.run([sys.executable, str(Path(__file__).with_name("reconcile_access.py")),
+            subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] / "scripts" / "reconcile_access.py"),
                             "--folder", str(folder), "--out-dir", str(output)], check=True, capture_output=True)
             with (output / "access_comparison.csv").open(newline="", encoding="utf-8") as handle:
                 rows = list(csv.DictReader(handle))

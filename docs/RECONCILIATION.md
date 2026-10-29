@@ -78,7 +78,7 @@ The supplied R analysis expects baseline fields such as `procedure_list`, plus `
 ## Checks
 
 ```bash
-python3 -m unittest -v test_reconcile_access.py
+python3 -m unittest discover -s tests -p test_reconcile_access.py -v
 ```
 
 Tests use synthetic records for date/MRN normalization, matching, missing values, cross-source disagreement, conflicting duplicates, no row multiplication, original-value preservation and end-to-end CSV/Excel processing.

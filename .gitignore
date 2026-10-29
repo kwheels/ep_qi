@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Research inputs, patient identifiers, notes and generated results stay local.
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.zip
+data/
+outputs/
+results/
+access_reconciliation*/
+procedure_inventory*/
+test_access_course_note.txt
