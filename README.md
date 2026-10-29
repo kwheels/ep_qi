@@ -6,6 +6,7 @@ Python tools for extracting procedure-note information and comparing reviewed ac
 
 ```text
 scripts/           Implementation and command-line tools
+analysis/          R analysis and note-merge helpers
 tests/             Automated checks using synthetic data
 docs/              Usage instructions and field definitions
 requirements.txt   Excel-reader dependency
@@ -22,6 +23,7 @@ Small Python files at the repository root preserve previously shared commands. T
 | Make a compact discrepancy review | `scripts/format_access_review.py` | [Reconciliation](docs/RECONCILIATION.md#compact-discrepancy-review) |
 | Index procedures performed | `scripts/index_procedures.py` | [Procedure inventory](docs/PROCEDURE_INDEX.md) |
 | Categorize procedures and propose access eligibility | `scripts/categorize_procedures.py` | [Categorization](docs/PROCEDURE_INDEX.md#categorization-and-access-cohort) |
+| R analysis with note eligibility and anything-counts access | `analysis/ptx_analysis_v2.R` | [R note enrichment](docs/R_NOTE_ENRICHMENT.md) |
 
 Run from the repository root on Armis2:
 

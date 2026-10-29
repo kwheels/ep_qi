@@ -1,6 +1,7 @@
 # Repository conventions
 
 - Put implementation and new command-line tools in `scripts/`.
+- Put R analyses and their helpers in `analysis/`; keep synthetic R checks in `tests/`.
 - Put automated tests in `tests/`; use synthetic data only.
 - Put workflow instructions and output-column definitions in `docs/`.
 - Keep the root README as a short navigation guide; update its workflow table when adding tools.

@@ -2,6 +2,8 @@
 
 ## 2026-10-29
 
+- Add preliminary R analysis integrating reviewed note eligibility and anything-counts US/venogram/micropuncture/fluoroscopy documentation while retaining uncovered database procedures and source audits.
+
 - Allow inventory/categorization reruns in fixed output directories, replacing generated CSVs while preserving unrelated files.
 
 - Extract all duplicated procedure sections with additional heading boundaries to reduce narrative/discharge spillover.
