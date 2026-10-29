@@ -1,5 +1,17 @@
 # Clean reviewed labels and compare databases
 
+## Compact discrepancy review
+
+To make an existing comparison easier to review, without rerunning Excel matching:
+
+```bash
+python3 format_access_review.py \
+  /home/kwheels/cied_complications/access_reconciliation_v2/access_comparison.csv \
+  /home/kwheels/cied_complications/access_reconciliation_v2/discrepancies_easy_review.csv
+```
+
+This includes only procedures present in both groups and only techniques that disagree, conflict within duplicate rows, or cannot be fully compared. Each row is one procedure/technique. Notes, MiHeart and manual-review values appear side by side as `Used (1)`, `Not used (0)`, `Unknown`, `No record`, or an explicit conflict. Original row references identify source records. Fill `resolved_value` with 0 or 1 after adjudication, and optionally add `reviewer_comments`. No resolution is prefilled and this script does not apply edits to the analysis. One procedure can have multiple review rows. Import MRN as text in Excel to preserve leading zeros. The source comparison remains unchanged.
+
 If an MRN/date is invalid, strict mode stops with the source record number. To continue with valid records while preserving invalid rows for review:
 
 ```bash
