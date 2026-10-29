@@ -2,6 +2,8 @@
 
 ## 2026-10-29
 
+- Make final fluoroscopy an exclusive "fluoroscopy without venogram" category, preserving raw and anything-counts documentation for audits.
+
 - Add preliminary R analysis integrating reviewed note eligibility and anything-counts US/venogram/micropuncture/fluoroscopy documentation while retaining uncovered database procedures and source audits.
 
 - Allow inventory/categorization reruns in fixed output directories, replacing generated CSVs while preserving unrelated files.

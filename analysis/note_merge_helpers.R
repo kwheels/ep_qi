@@ -34,6 +34,12 @@ combine_access <- function(database, notes) {
          ifelse(database %in% FALSE | notes %in% FALSE, FALSE, NA))
 }
 
+fluoroscopy_without_venogram <- function(fluoroscopy, venogram) {
+  # Analysis category, not a claim that fluoroscopy was physically absent.
+  ifelse(venogram %in% TRUE, FALSE,
+         ifelse(venogram %in% FALSE, fluoroscopy, NA))
+}
+
 eligibility_consensus <- function(x) {
   known <- unique(x[!is.na(x)])
   if (length(known) == 1L) known[[1]] else NA
@@ -152,6 +158,17 @@ merge_note_documentation <- function(database, notes) {
     combined[[paste0(technique, "_discrepancy")]] <- ifelse(!is.na(db) & !is.na(note), db != note, NA)
     combined[[paste0(technique, "_added_from_note")]] <- note %in% TRUE & !(db %in% TRUE)
   }
+  combined <- combined %>% mutate(
+    fluoroscopy_documented = fluoroscopy,
+    fluoroscopy = fluoroscopy_without_venogram(fluoroscopy_documented, venogram),
+    fluoroscopy_note_exclusive = fluoroscopy_without_venogram(fluoroscopy_note, venogram_note),
+    imaging_access_group = case_when(
+      venogram %in% TRUE ~ "Venogram",
+      fluoroscopy %in% TRUE ~ "Fluoroscopy without venogram",
+      venogram %in% FALSE & fluoroscopy %in% FALSE ~ "Neither",
+      TRUE ~ "Unknown"
+    )
+  )
   list(data = combined, source_audit = source_audit, note_only = note_only)
 }
 

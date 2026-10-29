@@ -41,6 +41,10 @@ Thus keeping a procedure without notes means it remains subject to the original 
 
 ## Anything-counts access flags
 
+For imaging comparisons, venogram takes precedence: final `fluoroscopy`/`fluoroscopy_yes` now means **fluoroscopy without venogram**. A positive final venogram forces this category FALSE, even when fluoroscopy was also documented. If venogram is FALSE, the documented fluoroscopy flag is retained; unknown source information stays unknown. `imaging_access_group` distinguishes Venogram, Fluoroscopy without venogram, Neither and Unknown. This makes venogram and final fluoroscopy mutually exclusive; ultrasound and micropuncture can still overlap either group.
+
+Raw source values stay in `fluoroscopy_database` and `fluoroscopy_note`. `fluoroscopy_documented` preserves the anything-counts combined fluoroscopy flag before priority recoding. `fluoroscopy_note_exclusive` applies the same venogram-priority rule to note-only labels. Fluoroscopy discrepancy/addition audit columns refer to original documentation, before recoding. This is an analytic classification, not evidence that fluoroscopy was absent during venography.
+
 For US, venogram, micropuncture and fluoroscopy, a positive in any database or reviewed-note row yields TRUE. If no positive exists but a source documents FALSE, the result is FALSE. If all sources are unknown, the result stays NA. Source flags (`*_database`, `*_note`), discrepancies and `*_added_from_note` are retained.
 
 Fluoroscopy is read only if a separately named database variable exists (`fluoroscopy`, `fluoro`, `fluoroscopy_used`, `fluoro_used`). Otherwise only reviewed-note fluoroscopy is available; it is not inferred from venography or absence of ultrasound. Access site/sequence is not newly adjudicated in this preliminary merge, so reviewed US/fluoroscopy positives can reflect other procedural access as already discussed. Fluoroscopy is added to the descriptive access comparison; the original Firth model remains US + venogram + micropuncture.

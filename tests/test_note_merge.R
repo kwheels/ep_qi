@@ -12,6 +12,9 @@ stopifnot(identical(combine_access(c(TRUE, FALSE, NA, NA), c(FALSE, TRUE, FALSE,
 stopifnot(is.na(anything_counts(c(NA, NA))))
 stopifnot(anything_counts(c(FALSE, TRUE)))
 stopifnot(identical(as_access_flag(c("", "1", "0"), TRUE), c(FALSE, TRUE, FALSE)))
+stopifnot(identical(fluoroscopy_without_venogram(
+  c(TRUE, FALSE, TRUE, FALSE, NA, TRUE), c(TRUE, TRUE, FALSE, FALSE, FALSE, NA)),
+  c(FALSE, FALSE, TRUE, FALSE, NA, NA)))
 
 database <- tibble(
   mrn = c("00123", "123", "456", "789", "999", "1000", "NULL", "NULL"),

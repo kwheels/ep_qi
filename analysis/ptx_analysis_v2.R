@@ -487,7 +487,7 @@ access_comparison <- bind_rows(
   compare_access(
     cied_analysis_access,
     "fluoroscopy_yes",
-    "Fluoroscopy"
+    "Fluoroscopy without venogram"
   )
 ) %>%
   mutate(
