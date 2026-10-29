@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from reconcile_access import binary, column_map, date_text, mrn_text, reconcile, DB_COLUMNS
+from reconcile_access import binary, column_map, date_text, mrn_text, reconcile, load_records, DB_COLUMNS
 
 
 def record(source, mrn="00123", date="2024-07-19", values=None, row=2):
@@ -18,6 +18,27 @@ def record(source, mrn="00123", date="2024-07-19", values=None, row=2):
 
 
 class ReconciliationTests(unittest.TestCase):
+    def test_invalid_keys_preserved_for_review(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:
+            path = Path(temp) / "notes.csv"
+            with path.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["phi_mrn", "proc_date", "ultrasound_used", "venogram_used",
+                                 "micropuncture_used", "fluoroscopy_used"])
+                writer.writerow(["00123", "2024-07-19", 1, 0, 1, 0])
+                writer.writerow(["", "2024-07-19", 0, 1, 0, 0])
+                writer.writerow(["MRN_UNKNOWN", "2024-07-19", 1, 1, 1, 0])
+                writer.writerow(["00456", "not a date", 1, 0, 1, 0])
+            with self.assertRaisesRegex(ValueError, "record 3"):
+                load_records(path, "notes")
+            rejected = []
+            records, counts = load_records(path, "notes", rejected=rejected)
+            self.assertEqual(len(records), 1)
+            self.assertEqual(len(rejected), 3)
+            self.assertEqual(rejected[0]["source_row"], 3)
+            self.assertEqual(json.loads(rejected[1]["original_fields"])["phi_mrn"], "MRN_UNKNOWN")
+            self.assertEqual(json.loads(rejected[2]["original_fields"])["proc_date"], "not a date")
+
     def test_normalization(self):
         self.assertEqual(binary("" , True), 0)
         self.assertIsNone(binary(None))

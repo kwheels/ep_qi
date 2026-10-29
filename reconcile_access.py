@@ -106,7 +106,7 @@ def excel_rows(path, sheet=None):
         book.close()
 
 
-def load_records(path, source, sheet=None):
+def load_records(path, source, sheet=None, rejected=None):
     notes = source == "notes"
     iterator = csv_rows(path) if notes else excel_rows(path, sheet)
     records, mapping, counts = [], None, Counter()
@@ -116,6 +116,14 @@ def load_records(path, source, sheet=None):
         try:
             mrn = mrn_text(original[mapping["mrn"]])
             date = date_text(original[mapping["procedure_date"]])
+        except ValueError as exc:
+            if rejected is None:
+                raise ValueError("{} record {}: {} Use --quarantine-invalid to preserve invalid-key rows in a review file."
+                                 .format(path.name, number, exc))
+            rejected.append(dict(source=source, source_file=path.name, source_row=number,
+                                 reason=str(exc), original_fields=dumps(original)))
+            continue
+        try:
             values = {t: binary(original[mapping[t]], blank_zero=notes)
                       for t in TECHNIQUES if t in mapping}
             if notes:
@@ -229,27 +237,35 @@ def main():
     parser.add_argument("--miheart-sheet")
     parser.add_argument("--manual-sheet")
     parser.add_argument("--clean-only", action="store_true")
+    parser.add_argument("--quarantine-invalid", action="store_true",
+                        help="Save rows with invalid MRN/date in rejected_rows.csv; compare valid keys only.")
     parser.add_argument("--out-dir", type=Path, required=True, help="New directory; must not exist.")
     args = parser.parse_args()
     if args.out_dir.exists():
         parser.error("Output directory already exists; choose a new name.")
-    notes, counts = load_records(args.notes or args.folder / "access_technique_reviewed.csv", "notes")
+    rejected = [] if args.quarantine_invalid else None
+    notes, counts = load_records(args.notes or args.folder / "access_technique_reviewed.csv", "notes", rejected=rejected)
     database = []
     if not args.clean_only:
         for source, path, sheet in [
             ("miheart", args.miheart or args.folder / "Micropuncture.xlsx", args.miheart_sheet),
             ("manual", args.manual or args.folder / "manual_procedure_review.xlsx", args.manual_sheet)]:
-            records, _ = load_records(path, source, sheet)
+            records, _ = load_records(path, source, sheet, rejected=rejected)
             database.extend(records)
     clean, merged, audit = reconcile(notes, database)
     args.out_dir.mkdir(parents=True, exist_ok=False)
     write_csv(args.out_dir / "access_technique_clean.csv", ["mrn", "procedure_date"] + list(TECHNIQUES), clean)
     write_csv(args.out_dir / "source_records.csv", list(audit[0]), audit)
+    if args.quarantine_invalid:
+        write_csv(args.out_dir / "rejected_rows.csv",
+                  ["source", "source_file", "source_row", "reason", "original_fields"], rejected)
     if not args.clean_only:
         write_csv(args.out_dir / "access_comparison.csv", list(merged[0]), merged)
         write_csv(args.out_dir / "access_comparison_review.csv", list(merged[0]),
                   [r for r in merged if r["needs_review"]])
     summary = dict(note_rows=len(notes), database_rows=len(database),
+                   invalid_key_rows=len(rejected or []), input_review_required=int(bool(rejected)),
+                   invalid_key_rows_by_source=dict(Counter(r["source"] for r in rejected or [])),
                    note_procedures=len(clean), union_procedures=len(merged),
                    blank_to_zero=dict(counts),
                    duplicate_conflict_procedures=sum(r["duplicate_conflict"] for r in merged))
@@ -261,6 +277,9 @@ def main():
     with (args.out_dir / "summary.json").open("x", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)
     print(dumps(summary))
+    if rejected:
+        print("WARNING: Invalid-key rows were excluded from matching and preserved in rejected_rows.csv. "
+              "Comparison is provisional until these rows are reviewed and corrected.")
 
 
 if __name__ == "__main__":

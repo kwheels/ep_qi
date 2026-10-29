@@ -1,5 +1,13 @@
 # Clean reviewed labels and compare databases
 
+If an MRN/date is invalid, strict mode stops with the source record number. To continue with valid records while preserving invalid rows for review:
+
+```bash
+python3 reconcile_access.py --quarantine-invalid --out-dir /home/kwheels/cied_complications/access_reconciliation_v2
+```
+
+This writes `rejected_rows.csv` with source file, original row number, reason and all original fields. No MRN/date is guessed or replaced. These rows cannot be matched and are excluded from comparison counts; `summary.json` reports `invalid_key_rows`, counts by source and `input_review_required=1`. Comparisons are provisional until the rejected rows are corrected and the script rerun. A source with no valid records still stops the run. Invalid technique labels and structural/header errors still stop processing rather than being quarantined.
+
 Run on Armis2 in `ep_qi`. Source files are never changed. The script reads the reviewed labels, not the automated status or evidence columns. It performs an exact MRN/date match, not a date-window match.
 
 ```bash
