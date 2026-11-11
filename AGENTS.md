@@ -1,6 +1,7 @@
 # Repository conventions
 
 - Put implementation and new command-line tools in `scripts/`.
+- User-requested exception: the demographic workbook extractor and its instructions live in `demographic_extraction/`; its synthetic tests remain in `tests/`.
 - Put R analyses and their helpers in `analysis/`; keep synthetic R checks in `tests/`.
 - Target R 4.5.1 ("Great Square Root") on Armis2. All R code must support that version. Local R 4.6.1 checks are not proof of execution on 4.5.1; distinguish the tested runtime. Check package-version requirements as well as R syntax before introducing new APIs.
 - Put automated tests in `tests/`; use synthetic data only.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-10
+
+- Add demographic workbook extraction with PatientInfo MRN mapping, automatic singleton/long-tab classification, collapsed medical history, and identifier/QC audits. Text MRNs retain leading zeros; conflicting mappings remain unresolved for review.
+
 ## 2026-10-29
 
 - Make final fluoroscopy an exclusive "fluoroscopy without venogram" category, preserving raw and anything-counts documentation for audits.
