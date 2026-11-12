@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Require at least one positive access-technique flag from database or notes to retain otherwise unresolved lead revision/reposition cases in the abstract cohort.
+
 - Add standalone HRS abstract outputs: patient/procedure counts, mapped whole-cohort demographics, procedure types, three Pearson chi-squared access comparisons, value-free schemas and local diagnosis-inventory review. No Firth regression; uncertain revision policy and sparse expected counts are explicit.
 
 - Skip non-patient Query Specifications export metadata before validating table headers, and record the skip in the sheet summary.

@@ -16,7 +16,7 @@ data_dir <- getOption("hrs.data_dir", "/home/kwheels/cied_complications")
 output_dir <- getOption("hrs.output_dir", file.path(data_dir, "hrs_abstract_output"))
 demographic_dir <- getOption("hrs.demographic_dir", file.path(data_dir, "demographic_extraction_output"))
 eligibility_file <- getOption("hrs.eligibility_file", file.path(data_dir, "procedure_categories_v1/procedure_eligibility.csv"))
-revision_policy <- getOption("hrs.unconfirmed_revision_policy", "retain") # "exclude" supported
+revision_policy <- getOption("hrs.unconfirmed_revision_policy", "access_flag") # "exclude" supported
 private_dir <- file.path(output_dir, "private")
 shareable_dir <- file.path(output_dir, "shareable")
 dir.create(private_dir, recursive = TRUE, showWarnings = FALSE)
@@ -80,6 +80,8 @@ counts <- tibble(
   included_with_note = sum(cohort$has_procedure_note), included_without_note = sum(!cohort$has_procedure_note),
   included_with_demographics = sum(cohort$demographics_matched),
   included_unconfirmed_revision_access = sum(cohort$unconfirmed_revision_access),
+  included_revisions_by_access_flag = sum(cohort$access_eligibility_basis == "included_revision_positive_access_flag"),
+  excluded_revisions_without_access_flag = sum(eligibility_audit$access_eligibility_basis == "excluded_revision_no_positive_access_flag"),
   included_procedures_with_ptx = sum(cohort$pneumothorax),
   included_ptx_events = sum(cohort$ptx_event_count),
   pct_procedures_with_ptx = 100 * mean(cohort$pneumothorax),

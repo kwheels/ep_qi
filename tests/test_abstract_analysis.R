@@ -13,13 +13,23 @@ degenerate <- access_chisquare(tibble(access = c(TRUE, FALSE), pneumothorax = c(
 stopifnot(is.na(degenerate$p_value), grepl("Not estimable", degenerate$test_status))
 stopifnot(identical(three_way_or(c(TRUE, FALSE, NA, FALSE, FALSE), c(FALSE, TRUE, FALSE, NA, FALSE)), c(TRUE, TRUE, NA, NA, FALSE)))
 
-# Eligibility does not let a note-free revision silently disappear in retain mode.
+# Revision codes alone do not qualify: a positive technique can come from either source.
 baseline <- tibble(.key = c("a", "b", "c"), mrn = c("1", "2", "3"),
   procedure_date = as.Date(rep("2024-01-01", 3)), procedure_list = c("Lead Reposition", "New Implant ILR", "New Implant"),
   note_access_eligible = c(NA, NA, TRUE))
-stopifnot(abstract_cohort(baseline, "retain")$access_cohort_include[1])
+stopifnot(!abstract_cohort(baseline)$access_cohort_include[1])
+baseline$micro_puncture_database <- c(TRUE, FALSE, FALSE)
+stopifnot(abstract_cohort(baseline)$access_cohort_include[1])
 stopifnot(!abstract_cohort(baseline, "exclude")$access_cohort_include[1])
 stopifnot(!abstract_cohort(baseline)$access_cohort_include[2])
+baseline$micro_puncture_database[1] <- NA
+baseline$fluoroscopy_note <- c(TRUE, FALSE, FALSE)
+stopifnot(abstract_cohort(baseline)$access_cohort_include[1])
+baseline$fluoroscopy_note[1] <- FALSE
+stopifnot(!abstract_cohort(baseline)$access_cohort_include[1])
+baseline$note_access_eligible[1] <- FALSE
+baseline$fluoroscopy_note[1] <- TRUE
+stopifnot(!abstract_cohort(baseline)$access_cohort_include[1])
 
 # Multiple PTX diagnosis dates assigned to the same procedure do not multiply rows.
 ptx <- tibble(mrn = c("1", "1", "9"), date_diagnosed = c("01/02/2024", "01/03/2024", "01/03/2024"))

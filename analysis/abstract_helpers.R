@@ -1,18 +1,25 @@
 # R 4.5.1-compatible helpers. Source note_merge_helpers.R first.
 
-abstract_cohort <- function(data, revision_policy = c("retain", "exclude")) {
+abstract_cohort <- function(data, revision_policy = c("access_flag", "exclude")) {
   revision_policy <- match.arg(revision_policy)
   data <- apply_access_eligibility(data)
   text <- coalesce(as.character(data$procedure_list), "")
   nontransvenous <- str_detect(text, regex("loop[ -]*recorder|\\bILR\\b|leadless|epicardial|sub[ -]?(q|cutaneous)[ -]*(ICD|defibrillator)|\\bSQ?[ -]?ICD\\b", TRUE))
   data$unconfirmed_revision_access <- (data$lead_revision | data$lead_reposition) &
     !data$new_implant & !(data$note_access_eligible %in% TRUE) & !(data$note_access_eligible %in% FALSE)
+  evidence_columns <- intersect(c("us", "venogram", "micro_puncture", "fluoroscopy", "fluoroscopy_documented",
+    "us_database", "venogram_database", "micro_puncture_database", "fluoroscopy_database",
+    "us_note", "venogram_note", "micro_puncture_note", "fluoroscopy_note"), names(data))
+  positive <- lapply(data[evidence_columns], function(x) as_access_flag(x) %in% TRUE)
+  data$has_positive_access_flag <- if (length(positive)) Reduce(`|`, positive) else rep(FALSE, nrow(data))
   data$access_cohort_include[nontransvenous & !(data$note_access_eligible %in% TRUE)] <- FALSE
   data$access_eligibility_basis[nontransvenous & !(data$note_access_eligible %in% TRUE)] <- "excluded_nontransvenous_database_type"
-  if (revision_policy == "exclude") {
-    data$access_cohort_include[data$unconfirmed_revision_access] <- FALSE
-    data$access_eligibility_basis[data$unconfirmed_revision_access] <- "excluded_unconfirmed_revision_access"
-  }
+  affected <- data$unconfirmed_revision_access & !nontransvenous & !data$database_generator_only
+  retain_revision <- affected & data$has_positive_access_flag & revision_policy == "access_flag"
+  data$access_cohort_include[affected] <- retain_revision[affected]
+  data$access_eligibility_basis[retain_revision] <- "included_revision_positive_access_flag"
+  data$access_eligibility_basis[affected & !retain_revision] <- if (revision_policy == "exclude")
+    "excluded_unconfirmed_revision_access" else "excluded_revision_no_positive_access_flag"
   data$procedure_group <- case_when(
     data$new_implant & (data$lead_revision | data$lead_reposition | data$upgrade_downgrade) ~ "New implant plus revision/upgrade",
     data$new_implant ~ "New implant",

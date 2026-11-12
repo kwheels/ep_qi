@@ -38,14 +38,14 @@ The MiHeart/manual database is the baseline. Valid duplicate MRN/date records co
 
 Reviewed note eligibility 1 qualifies a permanent implant or attempted lead implant, while 0 excludes nonqualifying procedures. Temporary pacing/ILR/leadless items do not cancel a separate qualifying transvenous implant. Database-coded loop recorder, leadless and subcutaneous ICD procedures without a qualifying note are excluded. Generator-only exclusions use the previous MiHeart rule. Extraction-coded eligible cases remain explicitly labeled in the procedure-type table.
 
-**Unconfirmed revision/reposition access is not proven by a database revision code.** Default `hrs.unconfirmed_revision_policy="retain"` preserves the prior preliminary database fallback and reports `included_unconfirmed_revision_access`. This does not establish that access was obtained. To require confirmation for those cases:
+**Revision/reposition without confirmed implant/access in the note requires a positive access-technique flag.** Default `hrs.unconfirmed_revision_policy="access_flag"` retains such a procedure only if ultrasound, micropuncture, venogram or fluoroscopy is positive in either database or available notes. FALSE/missing alone does not qualify. The audit adds `has_positive_access_flag` and a specific inclusion/exclusion reason; cohort counts report retained revisions and exclusions lacking a positive flag. This is the user's preliminary proxy for access; site and sequence remain unadjudicated. Explicit nonqualifying note eligibility and nontransvenous/generator-only exclusions are not overridden. To exclude all unresolved revisions even when a positive flag exists:
 
 ```r
 options(hrs.unconfirmed_revision_policy = "exclude")
 source("analysis/hrs_abstract_analysis.R")
 ```
 
-Invalid-MRN database records stay separately in the procedure cohort/audit but cannot contribute to an identifiable unique-patient count or demographic merge. Counts report these explicitly; a final study patient N cannot be assumed complete if they remain. Unresolved note classifications use the previous database fallback and remain visible in the eligibility audit.
+Invalid-MRN database records stay separately in the procedure cohort/audit but cannot contribute to an identifiable unique-patient count or demographic merge. Counts report these explicitly; a final study patient N cannot be assumed complete if they remain. Other unresolved note classifications use the previous database fallback and remain visible in the eligibility audit. Previously set R options with `hrs.unconfirmed_revision_policy="retain"` must be removed or changed to `"access_flag"`.
 
 ## Demographics and field mapping
 
