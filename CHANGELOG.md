@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Add standalone HRS abstract outputs: patient/procedure counts, mapped whole-cohort demographics, procedure types, three Pearson chi-squared access comparisons, value-free schemas and local diagnosis-inventory review. No Firth regression; uncertain revision policy and sparse expected counts are explicit.
+
 - Skip non-patient Query Specifications export metadata before validating table headers, and record the skip in the sheet summary.
 
 - Add optional hidden-password, in-memory decryption for demographic XLSX workbooks; preserve encrypted sources and keep passwords out of command arguments.
