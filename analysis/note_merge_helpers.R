@@ -93,11 +93,21 @@ read_reviewed_notes <- function(folder, eligibility_file) {
   if (!"qualifying_procedures" %in% names(eligibility)) eligibility$qualifying_procedures <- NA_character_
   if (!"all_procedures" %in% names(eligibility)) eligibility$all_procedures <- NA_character_
   if (!"eligibility_status" %in% names(eligibility)) eligibility$eligibility_status <- NA_character_
+  device_flags <- c("has_subcutaneous_icd", "has_extravascular_icd", "note_mentions_subcutaneous_icd",
+                    "note_mentions_extravascular_icd", "nontransvenous_device_needs_review")
+  for (flag in device_flags) if (!flag %in% names(eligibility)) eligibility[[flag]] <- NA_character_
+  if (!"nontransvenous_device_evidence" %in% names(eligibility)) eligibility$nontransvenous_device_evidence <- NA_character_
   eligibility <- eligibility %>% group_by(mrn, procedure_date) %>% summarise(
     note_eligibility_rows = n(),
     note_eligibility_conflict = n_distinct(note_access_eligible, na.rm = TRUE) > 1L,
     note_access_eligible = eligibility_consensus(note_access_eligible),
     note_category_needs_review = any(as_access_flag(needs_review) %in% TRUE),
+    note_subcutaneous_icd = anything_counts(as_access_flag(has_subcutaneous_icd)),
+    note_extravascular_icd = anything_counts(as_access_flag(has_extravascular_icd)),
+    note_subcutaneous_icd_mention = anything_counts(as_access_flag(note_mentions_subcutaneous_icd)),
+    note_extravascular_icd_mention = anything_counts(as_access_flag(note_mentions_extravascular_icd)),
+    note_nontransvenous_device_review = anything_counts(as_access_flag(nontransvenous_device_needs_review)),
+    note_nontransvenous_device_evidence = paste(unique(na.omit(nontransvenous_device_evidence)), collapse = " || "),
     note_qualifying_procedures = paste(unique(na.omit(qualifying_procedures)), collapse = " | "),
     note_procedures = paste(unique(na.omit(all_procedures)), collapse = " | "),
     note_eligibility_status = paste(unique(na.omit(eligibility_status)), collapse = " | "),

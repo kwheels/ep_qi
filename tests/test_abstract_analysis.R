@@ -63,6 +63,10 @@ baseline$micro_puncture_database <- c(TRUE, FALSE, FALSE)
 stopifnot(abstract_cohort(baseline)$access_cohort_include[1])
 stopifnot(!abstract_cohort(baseline, "exclude")$access_cohort_include[1])
 stopifnot(!abstract_cohort(baseline)$access_cohort_include[2])
+device_types <- baseline[rep(1, 3), ]
+device_types$procedure_list <- c("New Implant Boston Scientific Sub-Q ICD", "New Implant EV ICD", "New Implant Extravascular ICD")
+device_types$note_access_eligible <- NA
+stopifnot(!any(abstract_cohort(device_types)$access_cohort_include))
 baseline$micro_puncture_database[1] <- NA
 baseline$fluoroscopy_note <- c(TRUE, FALSE, FALSE)
 stopifnot(abstract_cohort(baseline)$access_cohort_include[1])

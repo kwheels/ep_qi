@@ -2,6 +2,10 @@
 
 ## Categorization and access cohort
 
+Subcutaneous ICD detection examines the full original item, including device details after a colon: `ICD insertion: Boston Scientific Sub-Q ICD` is categorized as `subcutaneous_icd`, not a transvenous ICD. Supported variants include Sub-Q/Subcutaneous ICD, S-ICD/SQ-ICD, Extravascular ICD and EV-ICD, including common spacing/hyphen variants. Extravascular ICD is categorized separately. Neither category qualifies the case without a separate qualifying transvenous implant/lead item. Such mixed cases remain provisionally eligible and are flagged for review. A generic subcutaneous pocket is not an ICD-type match.
+
+The inventory also scans the entire `full_note` for those device phrases, retaining flags and evidence in `procedure_records.csv` and then `procedure_eligibility.csv`. Full-note matches can refer to history or removed hardware; they do not automatically cancel a separate qualifying implant. Review flags identify those possible mixed/historical cases. Regenerate both inventory and categories to capture full-note evidence; rerunning the categorizer alone corrects items already present in the old inventory but cannot add whole-note flags.
+
 Regenerate the inventory with the updated extractor, then categorize it:
 
 ```bash

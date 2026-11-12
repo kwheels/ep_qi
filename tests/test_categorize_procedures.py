@@ -22,6 +22,11 @@ class ProcedureCategoryTests(unittest.TestCase):
             ("Lead extraction", "Lead extraction", "device_or_lead_removal_only"),
             ("Subcutaneous coil insertion", "Subcutaneous coil insertion", "nontransvenous_system_review"),
             ("Lead revision", "Lead revision", "lead_revision_reposition_review"),
+            ("ICD insertion", "ICD insertion: Boston Scientific Sub-Q ICD", "subcutaneous_icd"),
+            ("ICD insertion", "ICD insertion: Medtronic Extravascular ICD", "extravascular_icd"),
+            ("EV-ICD insertion", "EV-ICD insertion", "extravascular_icd"),
+            ("S-ICD insertion", "S-ICD insertion", "subcutaneous_icd"),
+            ("ICD insertion", "ICD insertion: Boston Scientific transvenous ICD with a subcutaneous pocket", "transvenous_icd_implant"),
         ]
         for label, raw, expected in cases:
             with self.subTest(label=label):
@@ -64,6 +69,31 @@ class ProcedureCategoryTests(unittest.TestCase):
             self.assertEqual(marker.read_text(), "keep me")
             with (output / "procedure_eligibility.csv").open(newline="", encoding="utf-8") as handle:
                 self.assertEqual(len(list(csv.DictReader(handle))), 9)
+
+    def test_subq_extravascular_and_mixed_case(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:
+            root = Path(temp)
+            source = root / "notes.csv"
+            with source.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["phi_mrn", "proc_date", "full_note"])
+                for mrn, items, history in [
+                    ("1", "- ICD insertion: Boston Scientific Sub-Q ICD", ""),
+                    ("2", "- ICD insertion: Medtronic Extravascular ICD", ""),
+                    ("3", "- Sub-Q ICD removal\n- Atrial lead insertion\n- Pacemaker insertion", ""),
+                    ("4", "- ICD insertion: Transvenous ICD", "HISTORY: Previous Sub-Q ICD removal.\n")]:
+                    writer.writerow([mrn, "2024-01-01", history + "PROCEDURES PERFORMED:\n" + items + "\nANESTHESIA: General"])
+            build_inventory(source, root / "inventory")
+            categorize_inventory(root / "inventory", root / "categories")
+            with (root / "categories/procedure_eligibility.csv").open(newline="", encoding="utf-8") as handle:
+                rows = {r["mrn"]: r for r in csv.DictReader(handle)}
+            self.assertEqual(rows["1"]["note_access_eligible"], "0")
+            self.assertEqual(rows["2"]["note_access_eligible"], "0")
+            self.assertEqual(rows["3"]["note_access_eligible"], "1")
+            self.assertEqual(rows["3"]["nontransvenous_device_needs_review"], "1")
+            self.assertEqual(rows["4"]["note_access_eligible"], "1")
+            self.assertEqual(rows["4"]["note_mentions_subcutaneous_icd"], "1")
+            self.assertEqual(rows["4"]["nontransvenous_device_needs_review"], "1")
 
 
 if __name__ == "__main__":

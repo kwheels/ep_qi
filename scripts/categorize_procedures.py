@@ -15,6 +15,10 @@ try:
     from .reconcile_access import mrn_text, date_text, write_csv
 except ImportError:
     from reconcile_access import mrn_text, date_text, write_csv
+try:
+    from .procedure_terms import SUBCUTANEOUS_ICD, EXTRAVASCULAR_ICD
+except ImportError:
+    from procedure_terms import SUBCUTANEOUS_ICD, EXTRAVASCULAR_ICD
 
 write_csv = partial(write_csv, overwrite=True)
 
@@ -34,6 +38,10 @@ def categorize(label, original):
     # Device names in the original item must override a generic insertion label.
     if has(r"\b(?:leadless|aveir|micra)\b", text):
         return "leadless_pacemaker"
+    if SUBCUTANEOUS_ICD.search(text):
+        return "subcutaneous_icd"
+    if EXTRAVASCULAR_ICD.search(text):
+        return "extravascular_icd"
     if has(r"\btemporar\w*\b|externalized", text) and has(r"pacemaker|pacing|\bppm\b", text):
         return "temporary_pacing"
     if has(r"loop\s*recorder|event[_ -]*recorder|\b(?:ilr|icm)\b|implantable\s+cardiac\s+monitor", text):
@@ -119,6 +127,9 @@ def run(inventory, output):
             "missing_anesthesia_boundary", "empty_procedures_section", "unbulleted_section",
             "invalid_mrn_or_date"]) for r in note_rows)
         unknown = bool(categories & REVIEW) or "nonprocedure_text_review" in categories
+        mention_subq = any(r.get("note_mentions_subcutaneous_icd") == "1" for r in note_rows)
+        mention_ev = any(r.get("note_mentions_extravascular_icd") == "1" for r in note_rows)
+        device_review = bool(qualifying) and (mention_subq or mention_ev or bool(categories & {"subcutaneous_icd", "extravascular_icd"}))
         if all_missing:
             eligible, status = 0, "excluded_missing_procedures_section"
         elif qualifying:
@@ -134,10 +145,15 @@ def run(inventory, output):
                            all_procedures=" | ".join(sorted({i["procedure_label"] for i in components})),
                            has_ilr=int("ilr_insertion_removal" in categories),
                            has_leadless=int("leadless_pacemaker" in categories),
+                           has_subcutaneous_icd=int("subcutaneous_icd" in categories),
+                           has_extravascular_icd=int("extravascular_icd" in categories),
+                           note_mentions_subcutaneous_icd=int(mention_subq), note_mentions_extravascular_icd=int(mention_ev),
+                           nontransvenous_device_needs_review=int(device_review),
+                           nontransvenous_device_evidence=" || ".join(dict.fromkeys(r.get("nontransvenous_device_evidence", "") for r in note_rows if r.get("nontransvenous_device_evidence"))),
                            has_temporary_pacing=int("temporary_pacing" in categories),
                            has_attempted_lead_implant=int("attempted_transvenous_lead_implant" in categories),
                            generator_miheart_check=int("generator_only_or_change_miheart_check" in categories),
-                           needs_review=int(parsing_review or unknown or eligible == ""),
+                           needs_review=int(parsing_review or unknown or device_review or eligible == ""),
                            extraction_flags="; ".join(sorted({r["review_reason"] for r in note_rows if r["review_reason"]})),
                            source_rows="; ".join(r["source_row"] for r in note_rows)))
     if not cohort:

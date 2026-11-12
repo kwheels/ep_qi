@@ -49,6 +49,11 @@ cohort <- eligibility_audit %>% filter(access_cohort_include) %>% mutate(
   venogram_or_fluoroscopy = three_way_or(venogram, fluoroscopy_documented))
 if (!nrow(cohort)) stop("No included procedures. Inspect eligibility audit and input files.")
 write_csv(eligibility_audit, file.path(private_dir, "eligibility_audit.csv"))
+write_csv(eligibility_audit %>% filter(
+  note_subcutaneous_icd %in% TRUE | note_extravascular_icd %in% TRUE |
+  note_subcutaneous_icd_mention %in% TRUE | note_extravascular_icd_mention %in% TRUE |
+  access_eligibility_basis == "excluded_nontransvenous_database_type"),
+  file.path(private_dir, "nontransvenous_icd_audit.csv"))
 write_csv(eligibility_audit %>% filter(!access_cohort_include), file.path(private_dir, "excluded_procedures.csv"))
 write_csv(ptx$assigned, file.path(private_dir, "ptx_assignments.csv"))
 write_csv(ptx$unmatched, file.path(private_dir, "ptx_unmatched.csv"))

@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Detect Sub-Q/S-ICD and extravascular/EV-ICD using full procedure items, scan full-note mentions for review, and audit exclusions/mixed cases in the R analysis.
+
 - Carry optional manually reviewed cephalic cutdown flags into the R merge, revision evidence and access-coverage audits, with separate documented-use counts and unknown coverage.
 
 - Recognize X-ray/radiographic access guidance as fluoroscopy and keep coronary/CS venography distinct from peripheral access venography.

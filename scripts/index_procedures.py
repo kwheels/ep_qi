@@ -13,6 +13,10 @@ from functools import partial
 from pathlib import Path
 
 from reconcile_access import date_text, mrn_text, write_csv
+try:
+    from .procedure_terms import device_mentions
+except ImportError:
+    from procedure_terms import device_mentions
 
 # Inventory outputs may be regenerated in the user's fixed output directory.
 write_csv = partial(write_csv, overwrite=True)
@@ -117,8 +121,11 @@ def run(input_path, output_dir):
             issues.extend(extraction_issues)
             labels = [procedure_label(item) for item in items]
             common = dict(source_row=source_row, mrn=mrn, procedure_date=date, note_id=row.get("note_id", ""))
+            subq, ev, evidence = device_mentions(row["full_note"])
             records.append(dict(common, procedure_count=len(items), distinct_procedure_count=len(set(l.casefold() for l in labels)),
                                 procedures=" | ".join(labels), loop_recorder_mentioned=int(any(LOOP.search(i) for i in items)),
+                                note_mentions_subcutaneous_icd=int(subq), note_mentions_extravascular_icd=int(ev),
+                                nontransvenous_device_evidence=evidence,
                                 needs_review=int(bool(issues)), review_reason="; ".join(issues), procedures_section=section))
             for number, (item, label) in enumerate(zip(items, labels), 1):
                 normalized = label.casefold()

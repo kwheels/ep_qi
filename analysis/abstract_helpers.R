@@ -4,7 +4,7 @@ abstract_cohort <- function(data, revision_policy = c("access_flag", "exclude"))
   revision_policy <- match.arg(revision_policy)
   data <- apply_access_eligibility(data)
   text <- coalesce(as.character(data$procedure_list), "")
-  nontransvenous <- str_detect(text, regex("loop[ -]*recorder|\\bILR\\b|leadless|epicardial|sub[ -]?(q|cutaneous)[ -]*(ICD|defibrillator)|\\bSQ?[ -]?ICD\\b", TRUE))
+  nontransvenous <- str_detect(text, regex("loop[ -]*recorder|\\bILR\\b|leadless|epicardial|sub[ -]?(q|cutaneous)[ -]*(ICD|defibrillator)|\\bSQ?[ -]?ICD\\b|extra[ -]*vascular[ -]*(ICD|defibrillator)|\\bEV[ -]*ICD\\b", TRUE))
   data$unconfirmed_revision_access <- (data$lead_revision | data$lead_reposition) &
     !data$new_implant & !(data$note_access_eligible %in% TRUE) & !(data$note_access_eligible %in% FALSE)
   evidence_columns <- intersect(c("us", "venogram", "micro_puncture", "fluoroscopy", "fluoroscopy_documented",
