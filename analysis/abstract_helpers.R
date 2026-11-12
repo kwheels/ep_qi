@@ -9,7 +9,8 @@ abstract_cohort <- function(data, revision_policy = c("access_flag", "exclude"))
     !data$new_implant & !(data$note_access_eligible %in% TRUE) & !(data$note_access_eligible %in% FALSE)
   evidence_columns <- intersect(c("us", "venogram", "micro_puncture", "fluoroscopy", "fluoroscopy_documented",
     "us_database", "venogram_database", "micro_puncture_database", "fluoroscopy_database",
-    "us_note", "venogram_note", "micro_puncture_note", "fluoroscopy_note"), names(data))
+    "us_note", "venogram_note", "micro_puncture_note", "fluoroscopy_note",
+    "cephalic_cutdown", "cephalic_cutdown_database", "cephalic_cutdown_note"), names(data))
   positive <- lapply(data[evidence_columns], function(x) as_access_flag(x) %in% TRUE)
   data$has_positive_access_flag <- if (length(positive)) Reduce(`|`, positive) else rep(FALSE, nrow(data))
   data$access_cohort_include[nontransvenous & !(data$note_access_eligible %in% TRUE)] <- FALSE
@@ -123,6 +124,7 @@ note_access_coverage <- function(data) {
   data$venogram <- as_access_flag(data$venogram)
   raw <- if ("fluoroscopy_documented" %in% names(data)) data$fluoroscopy_documented else data$fluoroscopy
   data$fluoroscopy_without_venogram <- fluoroscopy_without_venogram(as_access_flag(raw), data$venogram)
+  data$cephalic_cutdown <- if ("cephalic_cutdown" %in% names(data)) as_access_flag(data$cephalic_cutdown) else rep(NA, nrow(data))
   flags <- cbind(data$ultrasound, data$venogram, data$fluoroscopy_without_venogram)
   n_positive <- rowSums(flags, na.rm = TRUE)
   n_unknown <- rowSums(is.na(flags))
@@ -134,6 +136,7 @@ note_access_coverage <- function(data) {
     "mrn", "procedure_date", "guidance_review_reason", "pneumothorax", "procedure_list", "procedure_group",
     "note_qualifying_procedures", "note_procedures", "access_eligibility_basis", "note_access_eligible",
     "micropuncture", "ultrasound", "venogram", "fluoroscopy_without_venogram", "fluoroscopy_documented",
+    "cephalic_cutdown", "cephalic_cutdown_database", "cephalic_cutdown_note",
     "us_database", "us_note", "venogram_database", "venogram_note", "fluoroscopy_database", "fluoroscopy_note",
     "micro_puncture_database", "micro_puncture_note", "database_rows", "note_access_rows", "note_category_needs_review")))
   summary <- tibble(
@@ -143,10 +146,15 @@ note_access_coverage <- function(data) {
     n_no_guidance_with_unknown = sum(n_positive == 0 & n_unknown > 0),
     n_multiple_guidance_positive = sum(n_positive > 1), sum_individual_positive_counts = sum(n_positive),
     n_no_guidance_but_micropuncture = sum(n_positive == 0 & data$micropuncture %in% TRUE),
+    n_cephalic_cutdown_positive = sum(data$cephalic_cutdown %in% TRUE),
+    n_no_guidance_but_cephalic_cutdown = sum(n_positive == 0 & data$cephalic_cutdown %in% TRUE),
+    n_any_guidance_or_cutdown_positive = sum(n_positive > 0 | data$cephalic_cutdown %in% TRUE),
+    n_no_guidance_or_cutdown_positive = sum(n_positive == 0 & !(data$cephalic_cutdown %in% TRUE)),
     n_ptx_no_guidance_positive = sum(n_positive == 0 & data$pneumothorax %in% TRUE))
-  patterns <- data %>% group_by(ultrasound, venogram, fluoroscopy_without_venogram) %>%
+  patterns <- data %>% group_by(ultrasound, venogram, fluoroscopy_without_venogram, cephalic_cutdown) %>%
     summarise(n_procedures = n(), n_ptx = sum(pneumothorax %in% TRUE), .groups = "drop")
-  list(review = review, summary = summary, patterns = patterns)
+  list(review = review %>% filter(!(cephalic_cutdown %in% TRUE)), guidance_review = review,
+       summary = summary, patterns = patterns)
 }
 
 schema_without_values <- function(data, dataset) {

@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Carry optional manually reviewed cephalic cutdown flags into the R merge, revision evidence and access-coverage audits, with separate documented-use counts and unknown coverage.
+
 - Recognize X-ray/radiographic access guidance as fluoroscopy and keep coronary/CS venography distinct from peripheral access venography.
 
 - Add a private note-covered no-guidance review list and aggregate union/overlap counts, with a standalone exporter for existing analysis outputs.

@@ -10,6 +10,7 @@ output_dir <- getOption("hrs.output_dir", file.path(data_dir, "hrs_abstract_outp
 data <- read_csv(file.path(output_dir, "private/final_procedure_dataset.csv"), col_types = cols(.default = "c"), show_col_types = FALSE)
 result <- note_access_coverage(data)
 write_csv(result$review, file.path(output_dir, "private/noteonly_no_access_listed.csv"))
+write_csv(result$guidance_review, file.path(output_dir, "private/noteonly_no_guidance_listed.csv"))
 write_csv(result$summary, file.path(output_dir, "shareable/noteonly_access_coverage.csv"))
 write_csv(result$patterns, file.path(output_dir, "shareable/noteonly_access_patterns.csv"))
 print(result$summary, width = Inf)

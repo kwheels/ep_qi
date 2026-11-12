@@ -48,6 +48,11 @@ unknown_input <- coverage_input
 unknown_input$fluoroscopy_documented[5] <- NA
 stopifnot(note_access_coverage(unknown_input)$summary$n_no_guidance_with_unknown == 1)
 stopifnot(sum(coverage$patterns$n_procedures) == coverage$summary$n_note_procedures)
+coverage_input$cephalic_cutdown <- c(NA, NA, NA, NA, TRUE, NA)
+cutdown_coverage <- note_access_coverage(coverage_input)
+stopifnot(nrow(cutdown_coverage$review) == 0, nrow(cutdown_coverage$guidance_review) == 1)
+stopifnot(cutdown_coverage$summary$n_no_guidance_but_cephalic_cutdown == 1)
+stopifnot(cutdown_coverage$summary$n_any_guidance_or_cutdown_positive == 3)
 
 # Revision codes alone do not qualify: a positive technique can come from either source.
 baseline <- tibble(.key = c("a", "b", "c"), mrn = c("1", "2", "3"),
@@ -66,6 +71,10 @@ stopifnot(!abstract_cohort(baseline)$access_cohort_include[1])
 baseline$note_access_eligible[1] <- FALSE
 baseline$fluoroscopy_note[1] <- TRUE
 stopifnot(!abstract_cohort(baseline)$access_cohort_include[1])
+baseline$note_access_eligible[1] <- NA
+baseline$fluoroscopy_note[1] <- FALSE
+baseline$cephalic_cutdown_note <- c(TRUE, NA, NA)
+stopifnot(abstract_cohort(baseline)$access_cohort_include[1])
 
 # Multiple PTX diagnosis dates assigned to the same procedure do not multiply rows.
 ptx <- tibble(mrn = c("1", "1", "9"), date_diagnosed = c("01/02/2024", "01/03/2024", "01/03/2024"))

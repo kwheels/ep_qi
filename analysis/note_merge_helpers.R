@@ -63,17 +63,20 @@ read_reviewed_notes <- function(folder, eligibility_file) {
                            na = c("", "NA"), show_col_types = FALSE) %>% janitor::clean_names()
   required <- c("phi_mrn", "proc_date", "ultrasound_used", "venogram_used", "micropuncture_used", "fluoroscopy_used")
   if (!all(required %in% names(access))) stop("Reviewed access CSV has unexpected columns.")
+  # Optional new manual-review field. Missing/unreviewed cutdown remains unknown.
+  if (!"cephalic_cutdown_used" %in% names(access)) access$cephalic_cutdown_used <- NA_character_
   access <- access %>% mutate(
     mrn = normalize_mrn(phi_mrn), procedure_date = parse_procedure_date(proc_date),
     us_note = as_access_flag(ultrasound_used, TRUE),
     venogram_note = as_access_flag(venogram_used, TRUE),
     micro_puncture_note = as_access_flag(micropuncture_used, TRUE),
-    fluoroscopy_note = as_access_flag(fluoroscopy_used, TRUE)
+    fluoroscopy_note = as_access_flag(fluoroscopy_used, TRUE),
+    cephalic_cutdown_note = as_access_flag(cephalic_cutdown_used)
   )
   if (any(is.na(access$mrn) | is.na(access$procedure_date))) stop("Reviewed access CSV contains invalid procedure keys.")
   access <- access %>% group_by(mrn, procedure_date) %>% summarise(
     note_access_rows = n(),
-    across(c(us_note, venogram_note, micro_puncture_note, fluoroscopy_note), anything_counts),
+    across(c(us_note, venogram_note, micro_puncture_note, fluoroscopy_note, cephalic_cutdown_note), anything_counts),
     .groups = "drop"
   )
   eligibility <- readr::read_csv(eligibility_file, col_types = readr::cols(.default = "c"),
@@ -112,6 +115,9 @@ merge_note_documentation <- function(database, notes) {
   database$fluoroscopy <- if (length(fluoro_names)) {
     Reduce(combine_access, lapply(database[fluoro_names], as_access_flag))
   } else rep(NA, nrow(database))
+  cutdown_names <- intersect(c("cephalic_cutdown", "cephalic_cutdown_used"), names(database))
+  database$cephalic_cutdown <- if (length(cutdown_names)) Reduce(combine_access, lapply(database[cutdown_names], as_access_flag)) else rep(NA, nrow(database))
+  if (!"cephalic_cutdown_note" %in% names(notes)) notes$cephalic_cutdown_note <- rep(NA, nrow(notes))
   database <- database %>% mutate(
     database_row = row_number(), mrn_original = as.character(mrn), mrn = normalize_mrn(mrn),
     procedure_date = parse_procedure_date(procedure_date),
@@ -120,21 +126,21 @@ merge_note_documentation <- function(database, notes) {
                    paste(mrn, procedure_date, sep = "__"))
   )
   source_audit <- database %>% select(database_row, mrn_original, mrn, procedure_date, procedure_source,
-                                      procedure_list, us, venogram, micro_puncture, fluoroscopy, .key)
+                                      procedure_list, us, venogram, micro_puncture, fluoroscopy, cephalic_cutdown, .key)
   # Collapse database duplicates at procedure level; preserve every original row in audit.
   single_value <- function(x) {
     known <- unique(x[!is.na(x)])
     if (length(known) == 1L) known[[1]] else NA_character_
   }
   extra <- setdiff(names(database), c(".key", "mrn", "procedure_date", "database_row", "mrn_original",
-                                     "procedure_list", "procedure_source", "us", "venogram", "micro_puncture", "fluoroscopy"))
+                                     "procedure_list", "procedure_source", "us", "venogram", "micro_puncture", "fluoroscopy", "cephalic_cutdown"))
   database <- database %>% group_by(.key) %>% summarise(
     mrn = first(mrn), procedure_date = first(procedure_date), database_row_count = n(),
     database_rows = paste(database_row, collapse = "; "),
     mrn_original_values = paste(unique(mrn_original), collapse = "; "),
     procedure_list = paste(unique(na.omit(procedure_list)), collapse = " | "),
     procedure_source = paste(unique(na.omit(procedure_source)), collapse = " + "),
-    across(c(us, venogram, micro_puncture, fluoroscopy), anything_counts),
+    across(c(us, venogram, micro_puncture, fluoroscopy, cephalic_cutdown), anything_counts),
     across(all_of(extra), ~ single_value(as.character(.x))),
     .groups = "drop"
   )
@@ -146,13 +152,14 @@ merge_note_documentation <- function(database, notes) {
   combined <- combined %>% mutate(
     has_procedure_note = !is.na(note_access_rows) | !is.na(note_eligibility_rows),
     invalid_database_key = is.na(mrn) | is.na(procedure_date),
-    across(c(us, venogram, micro_puncture, fluoroscopy), identity, .names = "{.col}_database"),
+    across(c(us, venogram, micro_puncture, fluoroscopy, cephalic_cutdown), identity, .names = "{.col}_database"),
     us = combine_access(us_database, us_note),
     venogram = combine_access(venogram_database, venogram_note),
     micro_puncture = combine_access(micro_puncture_database, micro_puncture_note),
-    fluoroscopy = combine_access(fluoroscopy_database, fluoroscopy_note)
+    fluoroscopy = combine_access(fluoroscopy_database, fluoroscopy_note),
+    cephalic_cutdown = combine_access(cephalic_cutdown_database, cephalic_cutdown_note)
   )
-  for (technique in c("us", "venogram", "micro_puncture", "fluoroscopy")) {
+  for (technique in c("us", "venogram", "micro_puncture", "fluoroscopy", "cephalic_cutdown")) {
     db <- combined[[paste0(technique, "_database")]]
     note <- combined[[paste0(technique, "_note")]]
     combined[[paste0(technique, "_discrepancy")]] <- ifelse(!is.na(db) & !is.na(note), db != note, NA)

@@ -22,6 +22,13 @@ ACCESS_COURSE_NOTE = (
 
 
 class ExtractionTests(unittest.TestCase):
+    def test_cephalic_cut_down_with_wire_confirmation(self):
+        note = ("A cephalic vein cut-down was subsequently performed. Two J-tip "
+                "0.035 inch guide wires were introduced and the course through the "
+                "venous system was confirmed under fluoroscopy in the inferior vena cava.")
+        self.assertEqual(classify(note, "cephalic_cutdown")[:2], ("documented_use", "1"))
+        self.assertEqual(classify(note, "fluoroscopy")[0], "mention_without_access_context")
+
     def test_xray_access_and_coronary_venography(self):
         # Synthetic wording preserves the missed synonym and guidewire context.
         note = (

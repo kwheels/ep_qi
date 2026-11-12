@@ -84,6 +84,7 @@ class AbstractRunnerTests(unittest.TestCase):
             self.assertTrue((output / "shareable/access_sensitivity_cohort_counts.csv").exists())
             self.assertTrue((output / "private/noteonly_no_access_listed.csv").exists())
             self.assertTrue((output / "shareable/noteonly_access_coverage.csv").exists())
+            self.assertTrue((output / "shareable/cephalic_cutdown_summary.csv").exists())
             for path in (output / "shareable").glob("*"):
                 self.assertNotIn("SYNTHETIC_PRIVATE_DIAGNOSIS", path.read_text(encoding="utf-8"))
                 self.assertNotIn("synthetic-guid-", path.read_text(encoding="utf-8"))

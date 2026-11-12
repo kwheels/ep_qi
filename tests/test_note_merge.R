@@ -57,4 +57,12 @@ write.csv(access, file.path(folder, "access_technique_reviewed.csv"), row.names 
 write.csv(eligibility, file.path(folder, "procedure_eligibility.csv"), row.names = FALSE)
 reviewed <- read_reviewed_notes(folder, file.path(folder, "procedure_eligibility.csv"))
 stopifnot(nrow(reviewed) == 1L, reviewed$us_note, reviewed$micro_puncture_note, !reviewed$fluoroscopy_note)
+stopifnot(is.na(reviewed$cephalic_cutdown_note))
+access$cephalic_cutdown_used <- c("1", "")
+write.csv(access, file.path(folder, "access_technique_reviewed.csv"), row.names = FALSE)
+reviewed <- read_reviewed_notes(folder, file.path(folder, "procedure_eligibility.csv"))
+stopifnot(reviewed$cephalic_cutdown_note)
+cutdown_merge <- merge_note_documentation(database, reviewed)$data
+stopifnot(filter(cutdown_merge, mrn == "123")$cephalic_cutdown)
+stopifnot(is.na(filter(cutdown_merge, mrn == "1000")$cephalic_cutdown))
 message("Synthetic R note-merge checks passed.")
