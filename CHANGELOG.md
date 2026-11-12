@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Parse slash-formatted DOB timestamps explicitly, including minutes-only time strings, rather than guessing formats; invalid dates/two-digit birth years remain for review.
+
 - Recognize GenderName/EthnicityName, refresh only unresolved automatic field maps, and add value-free DOB format diagnostics with explicit Excel-serial parsing support.
 
 - Require at least one positive access-technique flag from database or notes to retain otherwise unresolved lead revision/reposition cases in the abstract cohort.

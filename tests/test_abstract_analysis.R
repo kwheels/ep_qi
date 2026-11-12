@@ -64,6 +64,10 @@ loaded <- load_demographic_fields(folder, mapping)$data
 stopifnot(nrow(loaded) == 2, loaded$sex[1] == "Female", loaded$race[1] == "Example A | Example B")
 stopifnot(is.na(parse_dob("21916")), parse_dob("21916", "excel") == as.Date("1960-01-01"))
 stopifnot(parse_dob("1950-06-01") == as.Date("1950-06-01"))
+dates <- c("01/01/1940 00:00", "02/15/1960 00:00", "12/19/1950 00:00", "07/04/1935 00:00",
+           "6/1/1950 12:30:00 PM", "1950-06-01T00:00:00", "02/30/1950 00:00", "01/01/40")
+stopifnot(identical(parse_dob(dates), as.Date(c("1940-01-01", "1960-02-15", "1950-12-19", "1935-07-04",
+                                                       "1950-06-01", "1950-06-01", NA, NA))))
 profile <- dob_format_profile(c("21916", "1950-06-01", NA))
 stopifnot(sum(profile$n_rows) == 3, "numeric_text_possible_excel_serial" %in% profile$format)
 oldmap <- tibble(variable = c("sex", "ethnicity", "race"), source_file = c(NA, NA, "patients.csv"),

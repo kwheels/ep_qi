@@ -47,7 +47,7 @@ class AbstractRunnerTests(unittest.TestCase):
                      [[str(i), "2024-01-01", 0 if i == 6 else 1] for i in range(1, 7)])
             csv_file(root / "ptx_patients_clean.csv", ["mrn", "date_diagnosed"], [["1", "01/02/2024"], ["3", "01/03/2024"]])
             csv_file(demo / "patients.csv", ["MRN", "PatientID", "PatientInfo__DOB", "DemographicInfo__Sex", "DemographicInfo__Ethnicity", "ClarityMedicalHistory__ProblemDescription"],
-                     [[str(i).zfill(5), "synthetic-guid-" + str(i), "1950-06-01", "Female" if i % 2 else "Male", "Example ethnicity",
+                     [[str(i).zfill(5), "synthetic-guid-" + str(i), "06/01/1950 00:00", "Female" if i % 2 else "Male", "Example ethnicity",
                        "SYNTHETIC_PRIVATE_DIAGNOSIS | Condition B"] for i in range(1, 12)])
             output = root / "hrs_abstract_output"
             # Paths are R string literals, passed as a structured process argument.
@@ -65,6 +65,10 @@ class AbstractRunnerTests(unittest.TestCase):
             self.assertEqual(counts["included_procedures"], "10")
             self.assertEqual(counts["included_patients_with_valid_mrn"], "10")
             self.assertEqual(counts["included_without_note"], "5")
+            with (output / "shareable/demographics_summary.csv").open(newline="", encoding="utf-8") as handle:
+                demographics = next(csv.DictReader(handle))
+            self.assertEqual(demographics["n_age_known"], "10")
+            self.assertEqual(demographics["mean_age"], "73")
             with (output / "shareable/access_chisquared.csv").open(newline="", encoding="utf-8") as handle:
                 comparisons = list(csv.DictReader(handle))
             self.assertEqual(len(comparisons), 3)

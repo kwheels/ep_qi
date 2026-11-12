@@ -106,7 +106,12 @@ parse_dob <- function(x, encoding = c("auto", "excel")) {
   numeric <- !is.na(text) & grepl("^[+-]?[0-9]+(\\.[0-9]+)?$", text)
   # Do not let a generic date parser interpret serial numbers as calendar text.
   result <- as.Date(rep(NA_character_, length(text)))
-  result[!numeric] <- parse_procedure_date(text[!numeric])
+  # DOB is a calendar date. Parse its date portion explicitly so timestamp
+  # precision cannot change format detection or accidentally reverse date order.
+  iso <- !is.na(text) & grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}([ T]|$)", text)
+  slash <- !is.na(text) & grepl("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}([ T]|$)", text)
+  result[iso] <- as.Date(substr(text[iso], 1, 10), format = "%Y-%m-%d")
+  result[slash] <- as.Date(sub("[ T].*$", "", text[slash]), format = "%m/%d/%Y")
   if (encoding == "excel") result[numeric] <- as.Date(floor(as.numeric(text[numeric])), origin = "1899-12-30")
   result
 }
