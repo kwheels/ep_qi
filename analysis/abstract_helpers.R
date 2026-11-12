@@ -88,11 +88,50 @@ schema_without_values <- function(data, dataset) {
   }))
 }
 
+dob_format_profile <- function(x) {
+  text <- trimws(as.character(x))
+  format <- case_when(
+    is.na(text) | text == "" ~ "missing",
+    grepl("^[+-]?[0-9]+(\\.[0-9]+)?$", text) ~ "numeric_text_possible_excel_serial",
+    grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}", text) ~ "ISO_date_or_timestamp",
+    grepl("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}", text) ~ "slash_date",
+    TRUE ~ "other_date_text"
+  )
+  tibble(format = format, character_length = nchar(text)) %>% count(format, character_length, name = "n_rows")
+}
+
+parse_dob <- function(x, encoding = c("auto", "excel")) {
+  encoding <- match.arg(encoding)
+  text <- trimws(as.character(x))
+  numeric <- !is.na(text) & grepl("^[+-]?[0-9]+(\\.[0-9]+)?$", text)
+  # Do not let a generic date parser interpret serial numbers as calendar text.
+  result <- as.Date(rep(NA_character_, length(text)))
+  result[!numeric] <- parse_procedure_date(text[!numeric])
+  if (encoding == "excel") result[numeric] <- as.Date(floor(as.numeric(text[numeric])), origin = "1899-12-30")
+  result
+}
+
+refresh_field_map <- function(existing, suggested) {
+  # Fill only previously unresolved automatic mappings, never user selections.
+  if (!"status" %in% names(existing)) return(existing)
+  for (i in seq_len(nrow(existing))) {
+    blank <- is.na(existing$column[i]) || !nzchar(trimws(existing$column[i]))
+    automatic <- !is.na(existing$status[i]) && grepl("^not identified|^ambiguous", existing$status[i])
+    replacement <- suggested %>% filter(variable == existing$variable[i], !is.na(column), column != "")
+    if (blank && automatic && nrow(replacement) == 1) {
+      existing$source_file[i] <- replacement$source_file
+      existing$column[i] <- replacement$column
+      existing$status[i] <- "newly recognized unique candidate; verify"
+    }
+  }
+  existing
+}
+
 field_candidates <- function(demographic_dir) {
   files <- c(file.path(demographic_dir, "patients.csv"), list.files(file.path(demographic_dir, "long"), "\\.csv$", full.names = TRUE))
-  fields <- list(dob = c("dob", "birthdate", "dateofbirth"), sex = c("sex", "gender", "sexdescription", "genderdescription"),
+  fields <- list(dob = c("dob", "birthdate", "dateofbirth"), sex = c("sex", "gender", "sexname", "gendername", "sexdescription", "genderdescription"),
                  race = c("race", "racedescription", "racename"),
-                 ethnicity = c("ethnicity", "ethnicitydescription", "ethnicgroup", "ethnicgroupname"),
+                 ethnicity = c("ethnicity", "ethnicityname", "ethnicitydescription", "ethnicgroup", "ethnicgroupname", "ethnicgroupdescription"),
                  medical_history = c("problemdescription"))
   bind_rows(lapply(files[file.exists(files)], function(path) {
     names_in_file <- names(readr::read_csv(path, n_max = 0, col_types = readr::cols(.default = "c"), show_col_types = FALSE))
@@ -116,7 +155,7 @@ suggest_field_map <- function(candidates) {
   }))
 }
 
-load_demographic_fields <- function(root, map) {
+load_demographic_fields <- function(root, map, dob_encoding = "auto") {
   master <- readr::read_csv(file.path(root, "patients.csv"), col_types = readr::cols(.default = "c"), show_col_types = FALSE)
   if (!"MRN" %in% names(master)) stop("patients.csv must contain MRN.")
   ids <- tibble(mrn = normalize_mrn(master$MRN)) %>% filter(!is.na(mrn)) %>% distinct()
@@ -142,8 +181,12 @@ load_demographic_fields <- function(root, map) {
     names(grouped)[2] <- field
     ids <- left_join(ids, grouped, by = "mrn")
   }
-  ids$dob <- parse_procedure_date(ids$dob)
-  list(data = ids, issues = bind_rows(issues))
+  dob_profile <- dob_format_profile(ids$dob)
+  dob_raw <- ids$dob
+  ids$dob <- parse_dob(ids$dob, dob_encoding)
+  dob_qc <- tibble(mrn = ids$mrn, dob_original = dob_raw, dob_parsed = ids$dob) %>%
+    filter(!is.na(dob_original), dob_original != "", is.na(dob_parsed))
+  list(data = ids, issues = bind_rows(issues), dob_profile = dob_profile, dob_qc = dob_qc)
 }
 
 add_demographics <- function(cohort, demographics) {

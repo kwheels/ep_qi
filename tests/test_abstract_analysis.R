@@ -62,6 +62,16 @@ candidates <- field_candidates(folder)
 mapping <- suggest_field_map(candidates)
 loaded <- load_demographic_fields(folder, mapping)$data
 stopifnot(nrow(loaded) == 2, loaded$sex[1] == "Female", loaded$race[1] == "Example A | Example B")
+stopifnot(is.na(parse_dob("21916")), parse_dob("21916", "excel") == as.Date("1960-01-01"))
+stopifnot(parse_dob("1950-06-01") == as.Date("1950-06-01"))
+profile <- dob_format_profile(c("21916", "1950-06-01", NA))
+stopifnot(sum(profile$n_rows) == 3, "numeric_text_possible_excel_serial" %in% profile$format)
+oldmap <- tibble(variable = c("sex", "ethnicity", "race"), source_file = c(NA, NA, "patients.csv"),
+                 column = c(NA, NA, "ManualSelection"), status = c("not identified", "not identified", "manual"))
+newmap <- tibble(variable = c("sex", "ethnicity", "race"), source_file = rep("patients.csv", 3),
+                 column = c("DemographicInfo__GenderName", "DemographicInfo__EthnicityName", "RaceName"))
+fixedmap <- refresh_field_map(oldmap, newmap)
+stopifnot(fixedmap$column[1] == "DemographicInfo__GenderName", fixedmap$column[3] == "ManualSelection")
 write_csv(tibble(diagnosis_term = c("unreviewed raw text", "other"), reviewed_term = c("Approved condition", ""),
                  approved_for_sharing = c("yes", ""), n_patients = c(10, 1), n_procedures = c(12, 1), proposed_group = c("", "")),
           file.path(folder, "review.csv"))

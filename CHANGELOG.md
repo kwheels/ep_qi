@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Recognize GenderName/EthnicityName, refresh only unresolved automatic field maps, and add value-free DOB format diagnostics with explicit Excel-serial parsing support.
+
 - Require at least one positive access-technique flag from database or notes to retain otherwise unresolved lead revision/reposition cases in the abstract cohort.
 
 - Add standalone HRS abstract outputs: patient/procedure counts, mapped whole-cohort demographics, procedure types, three Pearson chi-squared access comparisons, value-free schemas and local diagnosis-inventory review. No Firth regression; uncertain revision policy and sparse expected counts are explicit.
