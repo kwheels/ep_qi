@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Add demographic-linked and procedure-note-covered sensitivity chi-squared tables with independently recalculated denominators and cohort/PTX counts.
+
 - Parse slash-formatted DOB timestamps explicitly, including minutes-only time strings, rather than guessing formats; invalid dates/two-digit birth years remain for review.
 
 - Recognize GenderName/EthnicityName, refresh only unresolved automatic field maps, and add value-free DOB format diagnostics with explicit Excel-serial parsing support.

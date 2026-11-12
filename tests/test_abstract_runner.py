@@ -72,6 +72,13 @@ class AbstractRunnerTests(unittest.TestCase):
             with (output / "shareable/access_chisquared.csv").open(newline="", encoding="utf-8") as handle:
                 comparisons = list(csv.DictReader(handle))
             self.assertEqual(len(comparisons), 3)
+            with (output / "shareable/access_chisquared_completedemo.csv").open(newline="", encoding="utf-8") as handle:
+                complete = list(csv.DictReader(handle))
+            with (output / "shareable/access_chisquared_noteonly.csv").open(newline="", encoding="utf-8") as handle:
+                noteonly = list(csv.DictReader(handle))
+            self.assertEqual(complete[0]["n_known"], "10")
+            self.assertEqual(noteonly[0]["n_known"], "5")
+            self.assertTrue((output / "shareable/access_sensitivity_cohort_counts.csv").exists())
             for path in (output / "shareable").glob("*"):
                 self.assertNotIn("SYNTHETIC_PRIVATE_DIAGNOSIS", path.read_text(encoding="utf-8"))
                 self.assertNotIn("synthetic-guid-", path.read_text(encoding="utf-8"))

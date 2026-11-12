@@ -61,6 +61,13 @@ Female percentage uses recognized sex labels (Female/F, Male/M and listed other/
 
 ## Access and tests
 
+Two sensitivity tables are generated alongside the full-cohort `access_chisquared.csv`:
+
+- `access_chisquared_completedemo.csv`: included procedures with a valid MRN and a successful demographic linkage. This excludes the currently identified missing-MRN records. It does not additionally require complete race, ethnicity, age or sex fields.
+- `access_chisquared_noteonly.csv`: included procedures with `has_procedure_note=TRUE`. This is independent of the demographic restriction, not an additional filter layered onto it. Uses the same combined database-plus-note access flags; it does not switch to note-only exposure values.
+
+Both repeat all three chi-squared comparisons with newly calculated denominators. PTX assignment is preserved from the full baseline and is not redone after subsetting. `access_sensitivity_cohort_counts.csv` gives procedure counts, unique identifiable patients, PTX counts/rates, note coverage and demographic linkage for full/completedemo/noteonly. The full cohort remains available; missing exposure values are handled separately for each test. Empty subsets or degenerate tables produce missing P values rather than errors.
+
 Anything-counts documentation is retained for micropuncture and ultrasound. The third exposure is **venogram OR original documented fluoroscopy** (before exclusive-category recoding). TRUE in either makes the combined flag TRUE; both FALSE make it FALSE; otherwise it is unknown. This is an OR between two different techniques: a negative venogram flag alone cannot establish absence of fluoroscopy. Thus records without a note may have unknown combined exposure even when venogram is FALSE. They remain in the cohort and contribute to tests for their other known techniques. Each test's missing denominator is explicit. Original source flags remain available for audit.
 
 Each technique is a separate used-vs-not-used 2x2 comparison against PTX. Techniques can overlap; the three rows are not mutually exclusive access strategies. `access_chisquared.csv` gives event counts, rates, known/missing denominators, Pearson statistic, unadjusted P value, and expected-count diagnostics. No Yates correction, regression, automatic Fisher substitution or multiple-testing adjustment is applied. If a marginal group is absent, the test is not estimable and its P value stays missing. Small expected counts are flagged because the asymptotic chi-squared approximation can be unreliable with rare PTX. Repeated procedures from one patient are not cluster-adjusted by these requested tests.

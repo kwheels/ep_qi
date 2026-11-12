@@ -112,13 +112,18 @@ write_csv(procedure_types, file.path(shareable_dir, "new_implant_revision_summar
 # 4. Three requested procedure-level 2x2 Pearson chi-squared comparisons.
 # Groups compare used vs not-used for each technique; techniques may overlap.
 # No Firth model, no automatic switch to Fisher, no continuity correction.
-access_results <- bind_rows(
-  access_chisquare(cohort, "micropuncture", "Micropuncture"),
-  access_chisquare(cohort, "ultrasound", "Ultrasound"),
-  access_chisquare(cohort, "venogram_or_fluoroscopy", "Venogram or fluoroscopy")) %>%
-  mutate(pct_used_among_known = if_else(n_known > 0, 100 * n_used / n_known, NA_real_),
-         pct_used_among_all_procedures = 100 * n_used / nrow(cohort))
+access_results <- access_comparison_table(cohort)
 write_csv(access_results, file.path(shareable_dir, "access_chisquared.csv"))
+
+# Sensitivity restrictions are applied after the original PTX assignment and
+# eligibility filtering. Recalculate every denominator and test in each subset.
+sensitivity_cohorts <- access_sensitivity_cohorts(cohort)
+write_csv(access_comparison_table(sensitivity_cohorts$completedemo),
+          file.path(shareable_dir, "access_chisquared_completedemo.csv"))
+write_csv(access_comparison_table(sensitivity_cohorts$noteonly),
+          file.path(shareable_dir, "access_chisquared_noteonly.csv"))
+write_csv(sensitivity_cohort_counts(sensitivity_cohorts),
+          file.path(shareable_dir, "access_sensitivity_cohort_counts.csv"))
 
 # 5. Schemas contain names/classes/counts only: no values, DOBs, MRNs or examples.
 schemas <- bind_rows(schema_without_values(cohort, "final_procedure_dataset"), schema_without_values(patients, "final_patient_dataset"))
@@ -152,4 +157,5 @@ writeLines(c(
 ), file.path(shareable_dir, "analysis_definitions.txt"))
 print(counts, width = Inf)
 print(access_results, width = Inf)
+print(sensitivity_cohort_counts(sensitivity_cohorts), width = Inf)
 message("Outputs saved under ", output_dir, "; verify demographic_field_map.csv before interpreting demographics.")

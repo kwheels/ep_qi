@@ -13,6 +13,23 @@ degenerate <- access_chisquare(tibble(access = c(TRUE, FALSE), pneumothorax = c(
 stopifnot(is.na(degenerate$p_value), grepl("Not estimable", degenerate$test_status))
 stopifnot(identical(three_way_or(c(TRUE, FALSE, NA, FALSE, FALSE), c(FALSE, TRUE, FALSE, NA, FALSE)), c(TRUE, TRUE, NA, NA, FALSE)))
 
+# Sensitivity subsets are independent and recalculate denominators/events.
+sensitivity_input <- tibble(mrn = c("1", "1", NA, "2", "3", "4"),
+  demographics_matched = c(TRUE, TRUE, FALSE, TRUE, FALSE, TRUE),
+  has_procedure_note = c(TRUE, FALSE, FALSE, TRUE, TRUE, NA),
+  pneumothorax = c(1L, 0L, 0L, 0L, 1L, 0L),
+  micropuncture = c(TRUE, FALSE, FALSE, TRUE, TRUE, FALSE),
+  ultrasound = c(FALSE, TRUE, FALSE, TRUE, FALSE, TRUE),
+  venogram_or_fluoroscopy = c(TRUE, NA, NA, FALSE, TRUE, NA))
+subsets <- access_sensitivity_cohorts(sensitivity_input)
+stopifnot(nrow(subsets$completedemo) == 4, nrow(subsets$noteonly) == 3)
+stopifnot("3" %in% subsets$noteonly$mrn, !"3" %in% subsets$completedemo$mrn)
+subset_counts <- sensitivity_cohort_counts(subsets)
+stopifnot(subset_counts$n_procedures_with_ptx[subset_counts$analysis == "completedemo"] == 1)
+stopifnot(subset_counts$n_procedures_with_ptx[subset_counts$analysis == "noteonly"] == 2)
+stopifnot(access_comparison_table(subsets$completedemo)$n_known[1] == 4)
+stopifnot(all(is.na(access_comparison_table(sensitivity_input[FALSE, ])$p_value)))
+
 # Revision codes alone do not qualify: a positive technique can come from either source.
 baseline <- tibble(.key = c("a", "b", "c"), mrn = c("1", "2", "3"),
   procedure_date = as.Date(rep("2024-01-01", 3)), procedure_list = c("Lead Reposition", "New Implant ILR", "New Implant"),

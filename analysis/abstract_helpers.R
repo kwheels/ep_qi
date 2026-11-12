@@ -79,6 +79,34 @@ access_chisquare <- function(data, variable, label) {
          test_status = if (estimable) "Pearson chi-squared; no continuity correction" else "Not estimable: absent exposure or outcome group")
 }
 
+access_comparison_table <- function(data) {
+  bind_rows(
+    access_chisquare(data, "micropuncture", "Micropuncture"),
+    access_chisquare(data, "ultrasound", "Ultrasound"),
+    access_chisquare(data, "venogram_or_fluoroscopy", "Venogram or fluoroscopy")) %>%
+    mutate(pct_used_among_known = if_else(n_known > 0, 100 * n_used / n_known, NA_real_),
+           pct_used_among_all_procedures = if (nrow(data)) 100 * n_used / nrow(data) else NA_real_)
+}
+
+access_sensitivity_cohorts <- function(data) {
+  valid_mrn <- !is.na(data$mrn) & nzchar(trimws(as.character(data$mrn)))
+  list(full = data,
+       completedemo = data[valid_mrn & data$demographics_matched %in% TRUE, , drop = FALSE],
+       noteonly = data[data$has_procedure_note %in% TRUE, , drop = FALSE])
+}
+
+sensitivity_cohort_counts <- function(cohorts) {
+  bind_rows(lapply(names(cohorts), function(name) {
+    x <- cohorts[[name]]
+    tibble(analysis = name, n_procedures = nrow(x),
+           n_identifiable_patients = n_distinct(x$mrn[!is.na(x$mrn) & nzchar(x$mrn)]),
+           n_procedures_with_ptx = sum(x$pneumothorax),
+           pct_procedures_with_ptx = if (nrow(x)) 100 * mean(x$pneumothorax) else NA_real_,
+           n_with_notes = sum(x$has_procedure_note %in% TRUE),
+           n_with_demographic_link = sum(x$demographics_matched %in% TRUE))
+  }))
+}
+
 schema_without_values <- function(data, dataset) {
   bind_rows(lapply(names(data), function(column) {
     x <- data[[column]]
