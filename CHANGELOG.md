@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Skip non-patient Query Specifications export metadata before validating table headers, and record the skip in the sheet summary.
+
 - Add optional hidden-password, in-memory decryption for demographic XLSX workbooks; preserve encrypted sources and keep passwords out of command arguments.
 
 ## 2026-11-10

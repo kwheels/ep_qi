@@ -221,6 +221,17 @@ def extract(workbook_path, output, mrn_width=None, password_prompt=False):
         for sheet in book.worksheets:
             if sheet.title == master.title:
                 continue
+            # Clarity export metadata is often a free-form layout, not a table.
+            # Do not apply patient-table header rules to that sheet.
+            if normalized(sheet.title) in ("queryspecifications", "queryspecification"):
+                first_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True), ())
+                if not any(normalized(value) == "patientid" for value in first_row if value is not None):
+                    row_count = sum(any(cell_text(value) for value in values)
+                                    for values in sheet.iter_rows(min_row=2, values_only=True))
+                    summary.append(dict(sheet=sheet.title, classification="skipped_export_metadata",
+                                        row_count=row_count, unique_patient_ids=0, repeated_patient_ids=0,
+                                        output_file=""))
+                    continue
             headers = sheet_headers(sheet)
             pid_col = find_column(headers, "PatientID", required=False)
             seen, repeated, row_count = set(), set(), 0

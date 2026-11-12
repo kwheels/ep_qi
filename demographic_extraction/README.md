@@ -37,6 +37,8 @@ For every other tab except ClarityMedicalHistory, the script checks actual nonbl
 
 The first worksheet row must be the header row; extra title rows must be removed before extraction. Blank rows and trailing empty columns are ignored. Duplicate/ambiguous headers or populated cells with no header stop the run. Sheets with no data still appear in the classification summary. All worksheets, including hidden ones, are considered. Formulas are read from Excel's saved cached values; the script does not calculate formulas.
 
+Exception: `Query Specifications` (or `Query Specification`) is treated as export metadata when its first row has no PatientID header. It is skipped before table validation and recorded as `skipped_export_metadata` in `sheet_summary.csv`. Its free-form layout therefore does not stop patient extraction. Other patient/data sheets retain strict header checks; they are not silently skipped.
+
 ## Medical history
 
 `ClarityMedicalHistory` always receives special handling, regardless of its number of rows per patient. For each mapped patient, nonblank `ProblemDescription` values are trimmed, exact duplicates removed, and descriptions joined in first-seen order with ` | `. The single resulting field in `patients.csv` is:

@@ -85,6 +85,9 @@ class DemographicExtractionTests(unittest.TestCase):
             meds.append(["GUID-A", "Drug B", dt.datetime(2024, 1, 1, 13, 30)])
             meds.append(["UNKNOWN", "Drug C", None])
             meds.append([None, "Drug D", None])
+            metadata = book.create_sheet("Query Specifications")
+            metadata["A1"] = "Export details"
+            metadata["C5"] = "Synthetic query specification with no table header"
             wb = folder / "source.xlsx"
             book.save(wb)
             book.close()
@@ -111,6 +114,8 @@ class DemographicExtractionTests(unittest.TestCase):
             self.assertEqual(long[2]["MRN"], "")
             self.assertEqual(report["sheet_classifications"]["DemographicInfo"], "patient_level")
             self.assertEqual(report["sheet_classifications"]["MedicationAdministrations"], "repeated_measures")
+            self.assertEqual(report["sheet_classifications"]["Query Specifications"], "skipped_export_metadata")
+            self.assertFalse((output / "long" / "Query_Specifications.csv").exists())
             issues = read("qc_issues.csv")
             self.assertTrue(any(r["issue"] == "conflicting_patientid_mrn_mapping" for r in issues))
             self.assertTrue(any(r["issue"] == "mrn_shared_by_multiple_patientids" for r in issues))
