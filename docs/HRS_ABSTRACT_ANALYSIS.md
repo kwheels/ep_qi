@@ -61,6 +61,8 @@ Female percentage uses recognized sex labels (Female/F, Male/M and listed other/
 
 ## Access and tests
 
+To investigate note-covered procedures with no ultrasound/venogram/fluoroscopy listed, run `Rscript analysis/review_note_access.R` after an analysis run. This reads the saved final procedure CSV without rerunning the full analysis. It writes `private/noteonly_no_access_listed.csv` (MRN/date, original and combined flags, micropuncture, procedure descriptions and eligibility reason), `shareable/noteonly_access_coverage.csv` (union/overlap/missingness counts), and `shareable/noteonly_access_patterns.csv` (all observed guidance combinations and PTX counts). These are also generated automatically by the main script. No positive guidance means none of these three flags is TRUE; all-FALSE and unknown cases are distinguished. Micropuncture alone still appears in the review because it does not identify which imaging guidance was used. Ultrasound can overlap either imaging group, so summing individual technique counts is not the number of unique covered procedures. The review does not establish that venous access was absent and does not exclude any additional records.
+
 Two sensitivity tables are generated alongside the full-cohort `access_chisquared.csv`:
 
 - `access_chisquared_completedemo.csv`: included procedures with a valid MRN and a successful demographic linkage. This excludes the currently identified missing-MRN records. It does not additionally require complete race, ethnicity, age or sex fields.

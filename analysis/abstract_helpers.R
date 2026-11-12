@@ -117,6 +117,38 @@ sensitivity_cohort_counts <- function(cohorts) {
   }))
 }
 
+note_access_coverage <- function(data) {
+  data <- data[as_access_flag(data$has_procedure_note) %in% TRUE, , drop = FALSE]
+  data$ultrasound <- as_access_flag(if ("ultrasound" %in% names(data)) data$ultrasound else data$us)
+  data$venogram <- as_access_flag(data$venogram)
+  raw <- if ("fluoroscopy_documented" %in% names(data)) data$fluoroscopy_documented else data$fluoroscopy
+  data$fluoroscopy_without_venogram <- fluoroscopy_without_venogram(as_access_flag(raw), data$venogram)
+  flags <- cbind(data$ultrasound, data$venogram, data$fluoroscopy_without_venogram)
+  n_positive <- rowSums(flags, na.rm = TRUE)
+  n_unknown <- rowSums(is.na(flags))
+  data$guidance_review_reason <- ifelse(n_positive > 0, "Positive guidance documented",
+    ifelse(n_unknown > 0, "No positive guidance flag; at least one unknown", "Ultrasound, venogram and fluoroscopy all FALSE"))
+  data$micropuncture <- as_access_flag(if ("micropuncture" %in% names(data)) data$micropuncture else data$micro_puncture)
+  data$pneumothorax <- as_access_flag(data$pneumothorax)
+  review <- data[n_positive == 0, , drop = FALSE] %>% select(any_of(c(
+    "mrn", "procedure_date", "guidance_review_reason", "pneumothorax", "procedure_list", "procedure_group",
+    "note_qualifying_procedures", "note_procedures", "access_eligibility_basis", "note_access_eligible",
+    "micropuncture", "ultrasound", "venogram", "fluoroscopy_without_venogram", "fluoroscopy_documented",
+    "us_database", "us_note", "venogram_database", "venogram_note", "fluoroscopy_database", "fluoroscopy_note",
+    "micro_puncture_database", "micro_puncture_note", "database_rows", "note_access_rows", "note_category_needs_review")))
+  summary <- tibble(
+    n_note_procedures = nrow(data), n_any_guidance_positive = sum(n_positive > 0),
+    n_no_guidance_positive = sum(n_positive == 0),
+    n_no_guidance_all_false = sum(n_positive == 0 & n_unknown == 0),
+    n_no_guidance_with_unknown = sum(n_positive == 0 & n_unknown > 0),
+    n_multiple_guidance_positive = sum(n_positive > 1), sum_individual_positive_counts = sum(n_positive),
+    n_no_guidance_but_micropuncture = sum(n_positive == 0 & data$micropuncture %in% TRUE),
+    n_ptx_no_guidance_positive = sum(n_positive == 0 & data$pneumothorax %in% TRUE))
+  patterns <- data %>% group_by(ultrasound, venogram, fluoroscopy_without_venogram) %>%
+    summarise(n_procedures = n(), n_ptx = sum(pneumothorax %in% TRUE), .groups = "drop")
+  list(review = review, summary = summary, patterns = patterns)
+}
+
 schema_without_values <- function(data, dataset) {
   bind_rows(lapply(names(data), function(column) {
     x <- data[[column]]

@@ -124,6 +124,10 @@ write_csv(access_comparison_table(sensitivity_cohorts$noteonly, split_imaging = 
           file.path(shareable_dir, "access_chisquared_noteonly.csv"))
 write_csv(sensitivity_cohort_counts(sensitivity_cohorts),
           file.path(shareable_dir, "access_sensitivity_cohort_counts.csv"))
+note_coverage <- note_access_coverage(cohort)
+write_csv(note_coverage$review, file.path(private_dir, "noteonly_no_access_listed.csv"))
+write_csv(note_coverage$summary, file.path(shareable_dir, "noteonly_access_coverage.csv"))
+write_csv(note_coverage$patterns, file.path(shareable_dir, "noteonly_access_patterns.csv"))
 
 # 5. Schemas contain names/classes/counts only: no values, DOBs, MRNs or examples.
 schemas <- bind_rows(schema_without_values(cohort, "final_procedure_dataset"), schema_without_values(patients, "final_patient_dataset"))

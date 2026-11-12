@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Add a private note-covered no-guidance review list and aggregate union/overlap counts, with a standalone exporter for existing analysis outputs.
+
 - Split venogram and fluoroscopy-without-venogram in the note-covered sensitivity table; keep combined imaging in the full and demographic-linked comparisons.
 
 - Add demographic-linked and procedure-note-covered sensitivity chi-squared tables with independently recalculated denominators and cohort/PTX counts.

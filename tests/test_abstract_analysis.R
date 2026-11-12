@@ -37,6 +37,17 @@ stopifnot(nrow(split_results) == 4)
 stopifnot(split_results$n_used[split_results$technique == "Venogram"] == 2)
 stopifnot(split_results$n_used[split_results$technique == "Fluoroscopy without venogram"] == 2)
 stopifnot(split_results$n_missing[split_results$technique == "Fluoroscopy without venogram"] == 1)
+coverage_input <- split_input
+coverage_input$micropuncture <- c(TRUE, FALSE, FALSE, TRUE, TRUE, FALSE)
+coverage <- note_access_coverage(coverage_input)
+stopifnot(coverage$summary$n_note_procedures == 3)
+stopifnot(coverage$summary$n_any_guidance_positive == 2)
+stopifnot(coverage$summary$n_no_guidance_positive == 1)
+stopifnot(coverage$review$mrn == "3", coverage$review$micropuncture)
+unknown_input <- coverage_input
+unknown_input$fluoroscopy_documented[5] <- NA
+stopifnot(note_access_coverage(unknown_input)$summary$n_no_guidance_with_unknown == 1)
+stopifnot(sum(coverage$patterns$n_procedures) == coverage$summary$n_note_procedures)
 
 # Revision codes alone do not qualify: a positive technique can come from either source.
 baseline <- tibble(.key = c("a", "b", "c"), mrn = c("1", "2", "3"),
