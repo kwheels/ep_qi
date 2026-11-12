@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Split venogram and fluoroscopy-without-venogram in the note-covered sensitivity table; keep combined imaging in the full and demographic-linked comparisons.
+
 - Add demographic-linked and procedure-note-covered sensitivity chi-squared tables with independently recalculated denominators and cohort/PTX counts.
 
 - Parse slash-formatted DOB timestamps explicitly, including minutes-only time strings, rather than guessing formats; invalid dates/two-digit birth years remain for review.

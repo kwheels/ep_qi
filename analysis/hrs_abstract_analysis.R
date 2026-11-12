@@ -120,7 +120,7 @@ write_csv(access_results, file.path(shareable_dir, "access_chisquared.csv"))
 sensitivity_cohorts <- access_sensitivity_cohorts(cohort)
 write_csv(access_comparison_table(sensitivity_cohorts$completedemo),
           file.path(shareable_dir, "access_chisquared_completedemo.csv"))
-write_csv(access_comparison_table(sensitivity_cohorts$noteonly),
+write_csv(access_comparison_table(sensitivity_cohorts$noteonly, split_imaging = TRUE),
           file.path(shareable_dir, "access_chisquared_noteonly.csv"))
 write_csv(sensitivity_cohort_counts(sensitivity_cohorts),
           file.path(shareable_dir, "access_sensitivity_cohort_counts.csv"))

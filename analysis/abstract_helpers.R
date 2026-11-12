@@ -79,11 +79,21 @@ access_chisquare <- function(data, variable, label) {
          test_status = if (estimable) "Pearson chi-squared; no continuity correction" else "Not estimable: absent exposure or outcome group")
 }
 
-access_comparison_table <- function(data) {
+access_comparison_table <- function(data, split_imaging = FALSE) {
+  if (split_imaging) {
+    data$venogram_for_comparison <- as_access_flag(data$venogram)
+    raw_fluoro <- if ("fluoroscopy_documented" %in% names(data)) data$fluoroscopy_documented else data$fluoroscopy
+    data$fluoroscopy_for_comparison <- fluoroscopy_without_venogram(as_access_flag(raw_fluoro), data$venogram_for_comparison)
+    imaging <- bind_rows(
+      access_chisquare(data, "venogram_for_comparison", "Venogram"),
+      access_chisquare(data, "fluoroscopy_for_comparison", "Fluoroscopy without venogram"))
+  } else {
+    imaging <- access_chisquare(data, "venogram_or_fluoroscopy", "Venogram or fluoroscopy")
+  }
   bind_rows(
     access_chisquare(data, "micropuncture", "Micropuncture"),
     access_chisquare(data, "ultrasound", "Ultrasound"),
-    access_chisquare(data, "venogram_or_fluoroscopy", "Venogram or fluoroscopy")) %>%
+    imaging) %>%
     mutate(pct_used_among_known = if_else(n_known > 0, 100 * n_used / n_known, NA_real_),
            pct_used_among_all_procedures = if (nrow(data)) 100 * n_used / nrow(data) else NA_real_)
 }

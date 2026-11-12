@@ -29,6 +29,14 @@ stopifnot(subset_counts$n_procedures_with_ptx[subset_counts$analysis == "complet
 stopifnot(subset_counts$n_procedures_with_ptx[subset_counts$analysis == "noteonly"] == 2)
 stopifnot(access_comparison_table(subsets$completedemo)$n_known[1] == 4)
 stopifnot(all(is.na(access_comparison_table(sensitivity_input[FALSE, ])$p_value)))
+split_input <- sensitivity_input
+split_input$venogram <- c(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
+split_input$fluoroscopy_documented <- c(TRUE, FALSE, TRUE, TRUE, FALSE, NA)
+split_results <- access_comparison_table(split_input, split_imaging = TRUE)
+stopifnot(nrow(split_results) == 4)
+stopifnot(split_results$n_used[split_results$technique == "Venogram"] == 2)
+stopifnot(split_results$n_used[split_results$technique == "Fluoroscopy without venogram"] == 2)
+stopifnot(split_results$n_missing[split_results$technique == "Fluoroscopy without venogram"] == 1)
 
 # Revision codes alone do not qualify: a positive technique can come from either source.
 baseline <- tibble(.key = c("a", "b", "c"), mrn = c("1", "2", "3"),

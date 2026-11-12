@@ -78,6 +78,9 @@ class AbstractRunnerTests(unittest.TestCase):
                 noteonly = list(csv.DictReader(handle))
             self.assertEqual(complete[0]["n_known"], "10")
             self.assertEqual(noteonly[0]["n_known"], "5")
+            self.assertEqual(len(noteonly), 4)
+            self.assertEqual([r["technique"] for r in noteonly], ["Micropuncture", "Ultrasound", "Venogram", "Fluoroscopy without venogram"])
+            self.assertEqual(len(complete), 3)
             self.assertTrue((output / "shareable/access_sensitivity_cohort_counts.csv").exists())
             for path in (output / "shareable").glob("*"):
                 self.assertNotIn("SYNTHETIC_PRIVATE_DIAGNOSIS", path.read_text(encoding="utf-8"))
