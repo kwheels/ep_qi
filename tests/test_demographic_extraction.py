@@ -1,13 +1,53 @@
 import csv
 import datetime as dt
+import hashlib
+import io
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from demographic_extraction.extract_demographics import extract, mrn_value
+from demographic_extraction.extract_demographics import extract, mrn_value, open_workbook
 
 
 class DemographicExtractionTests(unittest.TestCase):
+    def test_encrypted_workbook_hidden_prompt_and_wrong_password(self):
+        import openpyxl
+        try:
+            from msoffcrypto.format.ooxml import OOXMLFile
+        except ImportError:
+            self.skipTest("Optional encryption package unavailable")
+        if not hasattr(OOXMLFile, "encrypt"):
+            self.skipTest("This package release can decrypt but cannot generate an encrypted test fixture")
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:
+            folder = Path(temp)
+            plain = io.BytesIO()
+            book = openpyxl.Workbook()
+            book.active.title = "PatientInfo"
+            book.active.append(["PatientID", "MRN", "DOB"])
+            book.active.append(["SYNTHETIC-ID", "00123", dt.date(1950, 1, 1)])
+            book.save(plain)
+            book.close()
+            plain.seek(0)
+            encrypted = folder / "encrypted.xlsx"
+            with encrypted.open("wb") as handle:
+                OOXMLFile(plain).encrypt("synthetic-test-password", handle)
+            digest = hashlib.sha256(encrypted.read_bytes()).hexdigest()
+            with self.assertRaisesRegex(ValueError, "password-prompt"):
+                with open_workbook(encrypted):
+                    pass
+            with patch("demographic_extraction.extract_demographics.getpass.getpass", return_value="wrong"):
+                with self.assertRaisesRegex(ValueError, "decryption failed"):
+                    with open_workbook(encrypted, True):
+                        pass
+            with patch("demographic_extraction.extract_demographics.getpass.getpass", return_value="synthetic-test-password") as prompt:
+                report = extract(encrypted, folder / "output", password_prompt=True)
+                prompt.assert_called_once()
+            self.assertEqual(report["patient_rows"], 1)
+            self.assertEqual(hashlib.sha256(encrypted.read_bytes()).hexdigest(), digest)
+            self.assertEqual(list(folder.glob("*.xlsx")), [encrypted])
+            plain.close()
+
     def test_mrn_preservation_and_numeric_qc(self):
         self.assertEqual(mrn_value("001234567"), ("001234567", ""))
         self.assertEqual(mrn_value(1234567), ("1234567", "numeric_mrn_verify_leading_zeros"))

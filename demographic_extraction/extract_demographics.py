@@ -6,9 +6,14 @@ Python 3.6+ and openpyxl. No network access; source workbook is read-only.
 import argparse
 import csv
 import datetime as dt
+import getpass
+import io
 import json
 import re
+import warnings
+import zipfile
 from collections import Counter, defaultdict
+from contextlib import contextmanager, ExitStack
 from pathlib import Path
 
 
@@ -86,13 +91,59 @@ def csv_writer(path, fields):
     return handle, writer
 
 
-def extract(workbook_path, output, mrn_width=None):
+@contextmanager
+def open_workbook(path, password_prompt=False):
     import openpyxl
+    decrypted = None
+    book = None
+    try:
+        source = path
+        if not zipfile.is_zipfile(str(path)):
+            if not password_prompt:
+                raise ValueError("Not a standard XLSX file. For a password-encrypted workbook, add --password-prompt.")
+            try:
+                import msoffcrypto
+            except ImportError:
+                raise RuntimeError("Encrypted workbooks require: python3 -m pip install --user msoffcrypto-tool")
+            with path.open("rb") as encrypted:
+                office = msoffcrypto.OfficeFile(encrypted)
+                if not office.is_encrypted():
+                    raise ValueError("File is not an encrypted XLSX workbook; verify its format.")
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("error", getpass.GetPassWarning)
+                        password = getpass.getpass("Workbook password (hidden): ")
+                except (getpass.GetPassWarning, EOFError):
+                    raise RuntimeError("A terminal with hidden password entry is required. Run interactively on Armis2.")
+                try:
+                    office.load_key(password=password, verify_password=True)
+                    decrypted = io.BytesIO()
+                    office.decrypt(decrypted)
+                except Exception:
+                    raise ValueError("Workbook decryption failed. Check the password and encryption format.") from None
+                finally:
+                    password = None
+                decrypted.seek(0)
+                if not zipfile.is_zipfile(decrypted):
+                    raise ValueError("Decrypted file is not XLSX. Older XLS files must be converted to XLSX.")
+                decrypted.seek(0)
+                source = decrypted
+        book = openpyxl.load_workbook(source, read_only=True, data_only=True)
+        yield book
+    finally:
+        if book is not None:
+            book.close()
+        if decrypted is not None:
+            decrypted.close()
+
+
+def extract(workbook_path, output, mrn_width=None, password_prompt=False):
     workbook_path, output = Path(workbook_path), Path(output)
     output.mkdir(parents=True, exist_ok=True)
     long_dir = output / "long"
     long_dir.mkdir(exist_ok=True)
-    book = openpyxl.load_workbook(workbook_path, read_only=True, data_only=True)
+    resources = ExitStack()
+    book = resources.enter_context(open_workbook(workbook_path, password_prompt))
     handles = []
     try:
         sheet_lookup = {normalized(name): name for name in book.sheetnames}
@@ -247,7 +298,7 @@ def extract(workbook_path, output, mrn_width=None):
     finally:
         for handle in handles:
             handle.close()
-        book.close()
+        resources.close()
 
 
 def main():
@@ -255,10 +306,11 @@ def main():
     parser.add_argument("workbook", type=Path)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--mrn-width", type=int, help="Optional confirmed fixed width; default preserves text MRNs exactly.")
+    parser.add_argument("--password-prompt", action="store_true", help="Prompt securely to decrypt an encrypted XLSX workbook in memory.")
     args = parser.parse_args()
     if args.mrn_width is not None and args.mrn_width < 1:
         parser.error("--mrn-width must be positive")
-    extract(args.workbook, args.out_dir, args.mrn_width)
+    extract(args.workbook, args.out_dir, args.mrn_width, args.password_prompt)
 
 
 if __name__ == "__main__":

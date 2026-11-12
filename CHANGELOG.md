@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-12
+
+- Add optional hidden-password, in-memory decryption for demographic XLSX workbooks; preserve encrypted sources and keep passwords out of command arguments.
+
 ## 2026-11-10
 
 - Add demographic workbook extraction with PatientInfo MRN mapping, automatic singleton/long-tab classification, collapsed medical history, and identifier/QC audits. Text MRNs retain leading zeros; conflicting mappings remain unresolved for review.

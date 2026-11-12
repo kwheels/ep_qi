@@ -12,6 +12,19 @@ python3 demographic_extraction/extract_demographics.py \
 
 Replace `YOUR_WORKBOOK.xlsx` with the real filename. The output directory may already exist; named generated files are replaced. Other files are preserved. If a tab is renamed, removed or reclassified on a later run, an old long CSV may remain; `sheet_summary.csv` identifies only the current run's output files. Do not consume a partial run if the script exits with an error.
 
+## Encrypted workbooks
+
+Install the optional encryption dependency and use a hidden interactive prompt:
+
+```bash
+python3 -m pip install --user -r demographic_extraction/requirements-encrypted.txt
+python3 demographic_extraction/extract_demographics.py /home/kwheels/cied_complications/CIED_demographics.xlsx --out-dir /home/kwheels/cied_complications/demographic_extraction_output --password-prompt
+```
+
+Enter the workbook password at `Workbook password (hidden):` and press Enter. No characters appear while typing. Do not put the real password in command arguments, the script, GitHub or chat. The workbook is decrypted into memory using msoffcrypto-tool and read from that buffer; no decrypted workbook is saved. The original encrypted file remains unchanged. Generated CSVs are ordinary unencrypted research outputs and should stay in the research data location. Plain XLSX inputs still work without the optional encryption package. Missing-package, incorrect-password and non-XLSX failures stop processing.
+
+The code remains Python 3.6-compatible; pip selects compatible package releases (msoffcrypto-tool 5.0 supports Python 3.6). Encryption checks run locally on a newer Python with a synthetic encrypted workbook; actual Armis2 execution and the real workbook must still be checked there. On Python environments where pip cannot resolve compatible encryption dependencies, use a newer installed Python/module rather than changing the workbook's extension.
+
 ## Patient-level file
 
 `patients.csv` contains one row per normalized **PatientID in PatientInfo**, with `MRN` first and `PatientID` second. It starts with every mapped patient, even if other tabs contain no records. All other PatientInfo fields (including DOB) are retained with a `PatientInfo__` prefix. DOB date cells become ISO dates such as `1950-01-02`.

@@ -1,0 +1,3 @@
+# pip selects the release compatible with the active Python interpreter.
+openpyxl>=3.0,<4
+msoffcrypto-tool>=5,<7
