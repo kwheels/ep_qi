@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Recognize X-ray/radiographic access guidance as fluoroscopy and keep coronary/CS venography distinct from peripheral access venography.
+
 - Add a private note-covered no-guidance review list and aggregate union/overlap counts, with a standalone exporter for existing analysis outputs.
 
 - Split venogram and fluoroscopy-without-venogram in the note-covered sensitivity table; keep combined imaging in the full and demographic-linked comparisons.

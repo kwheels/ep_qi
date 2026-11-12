@@ -22,6 +22,28 @@ ACCESS_COURSE_NOTE = (
 
 
 class ExtractionTests(unittest.TestCase):
+    def test_xray_access_and_coronary_venography(self):
+        # Synthetic wording preserves the missed synonym and guidewire context.
+        note = (
+            "Using a Seldinger technique and X-ray guidance, an 18-gauge needle "
+            "was inserted into the axillary vein.A J-tip 0.035 inch guide wire "
+            "was introduced and its venous course confirmed under fluoroscopy "
+            "in the inferior vena cava. Coronary venous angiography was next "
+            "performed to identify a target branch."
+        )
+        self.assertEqual(classify(note, "fluoroscopy")[:2], ("documented_use", "1"))
+        self.assertIn("X-ray guidance", " ".join(classify(note, "fluoroscopy")[3]))
+        self.assertEqual(classify(note, "venogram")[0], "mention_without_access_context")
+        self.assertEqual(classify(note, "micropuncture")[0], "not_mentioned")
+        for term in ["X-ray guidance", "x ray guided", "Xray guidance", "X\u2011ray guidance", "radiographic guidance"]:
+            self.assertEqual(classify("Using " + term + ", a needle was inserted into the axillary vein.", "fluoroscopy")[1], "1")
+        self.assertEqual(classify("Venous access obtained without X-ray guidance.", "fluoroscopy")[0], "explicit_non_use")
+        self.assertEqual(classify("Chest X-ray showed normal lead position.", "fluoroscopy")[0], "not_mentioned")
+        self.assertEqual(classify("Lead position assessed with fluoroscopy.", "fluoroscopy")[0], "mention_without_access_context")
+        self.assertEqual(classify("CS venography was performed after the coronary sinus was cannulated.", "venogram")[0], "mention_without_access_context")
+        self.assertEqual(classify("Venography of the coronary sinus was performed after cannulation.", "venogram")[0], "mention_without_access_context")
+        self.assertEqual(classify("An axillary venogram was performed before coronary sinus cannulation.", "venogram")[1], "1")
+
     def test_failed_access_and_cutdown(self):
         difficulty, conversion = access_course(ACCESS_COURSE_NOTE)
         self.assertTrue(difficulty)

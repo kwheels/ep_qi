@@ -23,7 +23,10 @@ ULTRASOUND_PATTERN = (
 TERMS = {
     "micropuncture": TERM,
     "ultrasound": re.compile(ULTRASOUND_PATTERN, re.I),
-    "fluoroscopy": re.compile(r"\b(?:fluoro(?:scop\w*)?|fluroscop\w*)\b", re.I),
+    "fluoroscopy": re.compile(
+        r"\b(?:fluoro(?:scop\w*)?|fluroscop\w*|"
+        r"x[\s\u2010-\u2015-]*ray[\s\u2010-\u2015-]+guid(?:ance|ed)|"
+        r"radiographic[\s-]+guid(?:ance|ed))\b", re.I),
     "venogram": re.compile(r"\b(?:veno(?:gram\w*|graph\w*)|venous\s+angiograph\w*)\b", re.I),
     "cephalic_cutdown": re.compile(r"\bcephalic(?:\s+vein)?\s+cut[\s-]*down\b", re.I),
 }
@@ -98,7 +101,12 @@ def classify(note, technique="micropuncture"):
         before = normalized[max(start, match.start() - 120):match.start()]
         after = normalized[match.end():min(end, match.end() + 160)]
         context = before + match.group() + after
-        if technique != "micropuncture" and not ACCESS.search(context):
+        coronary_venography = technique == "venogram" and (
+            re.search(r"\b(?:coronary(?:\s+(?:sinus|venous))?|CS)\s*$", before, re.I) or
+            re.search(r"^\s*(?:of|in)\s+(?:the\s+)?coronary(?:\s+sinus)?\b", after, re.I))
+        if coronary_venography:
+            label = "mention_without_access_context"
+        elif technique != "micropuncture" and not ACCESS.search(context):
             label = "mention_without_access_context"
         elif NEGATIVE.search(before) or AFTER_NEGATIVE.search(after):
             label = "explicit_non_use"
