@@ -21,7 +21,7 @@ write_access_figure <- function(results, output_stem, cohort_label,
       axis.ticks = ggplot2::element_line(colour = "black", linewidth = 0.55),
       axis.ticks.length = grid::unit(2.5, "pt"),
       axis.text = ggplot2::element_text(colour = "black", face = "bold", size = 7),
-      axis.text.x = ggplot2::element_text(margin = ggplot2::margin(t = 5)),
+      axis.text.x = ggplot2::element_text(margin = ggplot2::margin(t = 2.5)),
       axis.title.y = ggplot2::element_text(face = "bold", size = 7, margin = ggplot2::margin(r = 3)),
       plot.title = ggplot2::element_text(face = "bold", size = 9, hjust = 0.5, margin = ggplot2::margin(b = 3)),
       plot.subtitle = ggplot2::element_text(size = 8, hjust = 0.5, margin = ggplot2::margin(b = 2)),
@@ -50,9 +50,10 @@ write_access_figure <- function(results, output_stem, cohort_label,
       ggplot2::scale_x_continuous(limits = c(0.45, 2.55), breaks = d$x,
         labels = paste0(d$group, "\nN = ", d$total), expand = c(0, 0)) +
       ggplot2::scale_y_continuous(limits = c(0, 100), breaks = c(0, 50, 100), expand = c(0, 0)) +
-      ggplot2::labs(x = NULL, y = "Pneumothorax Rate (%)", title = label,
-        subtitle = paste0(p_label(r$p_value), if (isTRUE(r$sparse_expected_counts)) " *" else "")) +
-      ggplot2::annotation_custom(ggplot2::ggplotGrob(inset), xmin = 0.68, xmax = 2.55, ymin = 13, ymax = 99)
+      ggplot2::labs(x = NULL, y = "Pneumothorax Rate (%)", title = label) +
+      ggplot2::annotation_custom(ggplot2::ggplotGrob(inset), xmin = 0.60, xmax = 2.55, ymin = 9, ymax = 93) +
+      ggplot2::annotate("text", x = 1.5, y = 99, vjust = 1, size = 2.8, family = family,
+        label = paste0(p_label(r$p_value), if (isTRUE(r$sparse_expected_counts)) " *" else ""))
     main
   })
   # Compose ggplot grobs using standard grid viewports, with no base plotting.

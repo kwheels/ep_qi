@@ -140,6 +140,7 @@ if (getOption("hrs.make_figures", TRUE)) {
 note_coverage <- note_access_coverage(cohort)
 write_csv(note_coverage$review, file.path(private_dir, "noteonly_no_access_listed.csv"))
 write_csv(note_coverage$guidance_review, file.path(private_dir, "noteonly_no_guidance_listed.csv"))
+write_csv(note_coverage$no_technique_review, file.path(private_dir, "noteonly_no_technique_listed.csv"))
 write_csv(note_coverage$summary, file.path(shareable_dir, "noteonly_access_coverage.csv"))
 write_csv(note_coverage$patterns, file.path(shareable_dir, "noteonly_access_patterns.csv"))
 cephalic_summary <- sensitivity_cohorts$noteonly %>% summarise(

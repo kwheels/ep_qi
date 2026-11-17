@@ -84,6 +84,7 @@ class AbstractRunnerTests(unittest.TestCase):
             self.assertEqual(len(complete), 3)
             self.assertTrue((output / "shareable/access_sensitivity_cohort_counts.csv").exists())
             self.assertTrue((output / "private/noteonly_no_access_listed.csv").exists())
+            self.assertTrue((output / "private/noteonly_no_technique_listed.csv").exists())
             self.assertTrue((output / "shareable/noteonly_access_coverage.csv").exists())
             self.assertTrue((output / "shareable/cephalic_cutdown_summary.csv").exists())
             for stem in ["access_ptx", "access_ptx_completedemo", "access_ptx_noteonly"]:

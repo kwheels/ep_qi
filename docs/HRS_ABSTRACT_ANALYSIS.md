@@ -124,3 +124,7 @@ The full-scale panels have white backgrounds, with no pale full-height column fi
 Both main and inset x-axis baselines join the y-axis at zero; category labels sit below the ticks with explicit spacing.
 
 All charts are ggplot2 objects; grid only arranges their grobs on the page. Default colors are the first two entries of the ggsci JAMA-inspired palette (not-used #374E55; used #DF8F44), embedded as hex values so ggsci itself is not required. Palette source: https://github.com/nanxstats/ggsci/blob/master/R/palettes.R . The shared zero-expansion scales align the axes at zero, and bars have no outlines.
+
+Figure refinements: x-label margin is 2.5 pt, enlarged insets, and p-values are separate text annotations inside each full-scale plot.
+
+For QC among included note-covered procedures, `private/noteonly_no_access_listed.csv` has no positive ultrasound, venogram, fluoroscopy or cutdown, but may have micropuncture. The stricter `private/noteonly_no_technique_listed.csv` additionally requires no positive micropuncture flag. Both use merged database/note flags and retain unknowns for review; absence of a positive flag does not prove non-use. `private/noteonly_no_guidance_listed.csv` also includes cephalic cutdown cases. Run the main analysis, or `Rscript analysis/review_note_access.R` to refresh QC lists from saved final data without redoing the analysis.

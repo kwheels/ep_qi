@@ -156,6 +156,7 @@ note_access_coverage <- function(data) {
   patterns <- data %>% group_by(ultrasound, venogram, fluoroscopy_without_venogram, cephalic_cutdown) %>%
     summarise(n_procedures = n(), n_ptx = sum(pneumothorax %in% TRUE), .groups = "drop")
   list(review = review %>% filter(!(cephalic_cutdown %in% TRUE)), guidance_review = review,
+       no_technique_review = review %>% filter(!(cephalic_cutdown %in% TRUE), !(micropuncture %in% TRUE)),
        summary = summary, patterns = patterns)
 }
 

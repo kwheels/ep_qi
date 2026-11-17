@@ -44,6 +44,10 @@ stopifnot(coverage$summary$n_note_procedures == 3)
 stopifnot(coverage$summary$n_any_guidance_positive == 2)
 stopifnot(coverage$summary$n_no_guidance_positive == 1)
 stopifnot(coverage$review$mrn == "3", coverage$review$micropuncture)
+stopifnot(nrow(coverage$no_technique_review) == 0)
+no_technique_input <- coverage_input
+no_technique_input$micropuncture <- FALSE
+stopifnot(nrow(note_access_coverage(no_technique_input)$no_technique_review) == 1)
 unknown_input <- coverage_input
 unknown_input$fluoroscopy_documented[5] <- NA
 stopifnot(note_access_coverage(unknown_input)$summary$n_no_guidance_with_unknown == 1)
