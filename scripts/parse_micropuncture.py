@@ -35,6 +35,18 @@ ACCESS = re.compile(
     r"(?:axillary|subclavian|cephalic|femoral|jugular)\s+vein|"
     r"venipuncture|cannulat\w*|punctur\w*|needle)\b", re.I)
 GUIDANCE = re.compile(r"\b(?:guid\w*|using|under|with|performed|obtained)\b", re.I)
+FEMORAL_SITE = re.compile(r"\b(?:femoral|groin)\b", re.I)
+UPPER_SITE = re.compile(r"\b(?:axillary|subclavian)\b", re.I)
+
+
+def ultrasound_site(context):
+    """Local linkage only; upper access elsewhere cannot rescue femoral US."""
+    femoral, upper = bool(FEMORAL_SITE.search(context)), bool(UPPER_SITE.search(context))
+    if femoral and upper and re.search(
+            r"\b(?:femoral\s+(?:and|/)\s+(?:axillary|subclavian)|"
+            r"(?:axillary|subclavian)\s+(?:and|/)\s+femoral)\s+(?:venous\s+|vein\s+)?access\b", context, re.I):
+        return "upper"
+    return "mixed" if femoral and upper else "femoral" if femoral else "upper" if upper else "unspecified"
 ACCESS_COURSE_CONTEXT = re.compile(
     r"\b(?:access|vein|venous|wire|needle|cannulat\w*|punctur\w*|cut[ -]*down)\b", re.I)
 DIFFICULTY = re.compile(
@@ -86,13 +98,18 @@ IDENTIFIERS = [
 def classify(note, technique="micropuncture"):
     """Conservative mention-level rules; these are documentation labels."""
     normalized = unicodedata.normalize("NFKC", note or "")
+    if technique == "ultrasound":
+        # Keep list items/headings from sharing site context when whitespace is
+        # collapsed. Wrapped narrative lines remain part of the same sentence.
+        normalized = re.sub(r"\n\s*(?:[-*\u2022]|\d+[.)])\s+", "; ", normalized)
+        normalized = re.sub(r"\n\s*[A-Z][A-Z /&-]{3,}:\s*", "; ", normalized)
     normalized = re.sub(r"\s+", " ", normalized).strip()
     if not normalized:
         return "missing_note", "", 1, [], 0
     mentions = list(TERMS[technique].finditer(normalized))
     if not mentions:
         return "not_mentioned", "", 0, [], 0
-    labels, evidence = [], []
+    labels, evidence, sites = [], [], []
     for match in mentions:
         # Sentence boundaries deliberately exclude newlines (exported notes wrap).
         start = max(normalized.rfind(c, 0, match.start()) for c in ".;!?") + 1
@@ -119,18 +136,36 @@ def classify(note, technique="micropuncture"):
             label = "documented_use"
         else:
             label = "uncertain_mention"
+        if technique == "ultrasound":
+            site = ultrasound_site(context)
+            sites.append(site)
+            if label in {"documented_use", "uncertain_mention"}:
+                if site == "femoral":
+                    label = "femoral_access_only"
+                elif site == "mixed":
+                    label = "uncertain_access_site"
         labels.append(label)
         evidence.append(context.strip())
+    if technique == "ultrasound" and FEMORAL_SITE.search(normalized):
+        # A generic summary ("ultrasound guidance for venous access") must not
+        # override the body when its only site-specific US evidence is femoral.
+        for index, site in enumerate(sites):
+            if site == "unspecified" and labels[index] == "documented_use":
+                if any(s == "upper" and label == "documented_use" for s, label in zip(sites, labels)):
+                    continue
+                labels[index] = ("femoral_access_only" if "femoral" in sites and not UPPER_SITE.search(normalized)
+                                 else "uncertain_access_site")
     unique = set(labels)
     # Routine imaging elsewhere must not override a positive access sentence.
-    relevant = unique - {"mention_without_access_context"}
+    relevant = unique - {"mention_without_access_context", "femoral_access_only"}
     status = (next(iter(relevant)) if len(relevant) == 1 else
-              "mixed_mentions" if relevant else "mention_without_access_context")
-    value = {"documented_use": "1", "explicit_non_use": "0"}.get(status, "")
+              "mixed_mentions" if relevant else
+              "femoral_access_only" if "femoral_access_only" in unique else "mention_without_access_context")
+    value = {"documented_use": "1", "explicit_non_use": "0", "femoral_access_only": "0"}.get(status, "")
     variant = technique == "ultrasound" and any(
         not ULTRASOUND_STANDARD.fullmatch(match.group()) for match in mentions)
     course_review = any(access_course(normalized))
-    review = int(variant or course_review or status in {"uncertain_mention", "mixed_mentions", "mention_without_access_context"})
+    review = int(variant or course_review or status in {"uncertain_mention", "mixed_mentions", "mention_without_access_context", "uncertain_access_site"})
     return status, value, review, list(dict.fromkeys(evidence)), len(mentions)
 
 

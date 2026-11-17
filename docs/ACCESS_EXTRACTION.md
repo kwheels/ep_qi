@@ -56,3 +56,7 @@ Synthetic checks:
 ```bash
 python3 -m unittest discover -s tests -p test_parse_micropuncture.py -v
 ```
+
+Ultrasound site rules: local femoral/groin-only evidence produces `femoral_access_only` and `ultrasound_used=0` for this upper-access analysis. A separate axillary/subclavian puncture without ultrasound does not turn femoral ultrasound into upper-access ultrasound. Documented ultrasound linked to axillary/subclavian access remains positive even with additional femoral ultrasound. Ambiguous site linkage produces `uncertain_access_site` (blank used value, review flag); evidence snippets are retained when requested. Bullet boundaries are preserved for ultrasound context. A generic ultrasound summary cannot override femoral-only site-specific evidence. Unspecified-site ultrasound without femoral clues retains prior behavior. These are local text rules, not a complete anatomical/section parser.
+
+Re-running extraction does not modify `access_technique_reviewed.csv`. Generate a separate review output with evidence and reconcile changed ultrasound classifications with your adjudicated file before rerunning R. MiHeart ultrasound remains subject to the existing anything-counts policy; this parser cannot determine the site of an unqualified database flag.

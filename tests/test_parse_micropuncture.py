@@ -22,6 +22,28 @@ ACCESS_COURSE_NOTE = (
 
 
 class ExtractionTests(unittest.TestCase):
+    def test_ultrasound_access_site_linkage(self):
+        cases = [
+            ("Ultrasound-guided femoral venous access was obtained.", "femoral_access_only", "0"),
+            ("USG guidance was used for groin venous access.", "femoral_access_only", "0"),
+            ("Ultrasound-guided femoral venous access was obtained. Axillary vein access was obtained using fluoroscopy.", "femoral_access_only", "0"),
+            ("Ultrasound-guided femoral venous access was obtained. Ultrasound-guided axillary vein access was obtained.", "documented_use", "1"),
+            ("Ultrasound-guided femoral venous access was obtained. Subclavian vein access was obtained without ultrasound.", "explicit_non_use", "0"),
+            ("PROCEDURES PERFORMED:\n- US-guided femoral venous access\n- Ultrasound-guided axillary vein access\nANESTHESIA: MAC", "documented_use", "1"),
+            ("PROCEDURES PERFORMED:\n- Ultrasound guidance for venous access\nPROCEDURE AND DETAILS:\nUltrasound-guided femoral venous access was obtained.", "femoral_access_only", "0"),
+            ("PROCEDURES PERFORMED:\n- Ultrasound guidance for venous access\nPROCEDURE AND DETAILS:\nUltrasound-guided femoral venous access was obtained. Ultrasound-guided subclavian vein access was obtained.", "documented_use", "1"),
+            ("Ultrasound was used for femoral and axillary venous access.", "documented_use", "1"),
+            ("Femoral venous access was obtained under ultrasound and axillary vein access was obtained with fluoroscopy.", "uncertain_access_site", ""),
+            ("Ultrasound-guided femoral venous access was obtained. Ultrasound-guided axillary vein access was considered.", "uncertain_mention", ""),
+        ]
+        for note, status, value in cases:
+            with self.subTest(note=note):
+                result = classify(note, "ultrasound")
+                self.assertEqual(result[:2], (status, value))
+                self.assertTrue(result[3])
+                if status == "uncertain_access_site":
+                    self.assertEqual(result[2], 1)
+
     def test_cephalic_cut_down_with_wire_confirmation(self):
         note = ("A cephalic vein cut-down was subsequently performed. Two J-tip "
                 "0.035 inch guide wires were introduced and the course through the "

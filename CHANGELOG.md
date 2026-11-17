@@ -58,3 +58,5 @@
 - Recognize Medtronic Aurora, DVEA3E4, EV240163 and EV-CD wording as extravascular ICD clues, preventing EV leads from qualifying as transvenous implants.
 
 - Automatically exclude lead-repair-only procedures while retaining mixed cases with a separately documented qualifying implant.
+
+- Make note ultrasound extraction site-aware: exclude femoral-only evidence, retain linked axillary/subclavian ultrasound, and flag uncertain site linkage with reviewable evidence.
