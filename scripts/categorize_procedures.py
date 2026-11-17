@@ -69,6 +69,8 @@ def categorize(label, original):
     if has(r"\b(?:lead|pacemaker|icd|device)\b", base) and has(r"extract|explant|remov|abandon", base):
         return "device_or_lead_removal_only"
     if has(r"lead", base) and has(r"revision|reposition|repair", base):
+        if has(r"\blead\b", base) and has(r"\brepair\w*\b", base):
+            return "lead_repair_only"
         return "lead_revision_reposition_review"
     if has(r"\bep\s+study\b|electrophysiolog\w*\s+study|electrophysiologic\s+study|"
            r"ventricular\s+stimulation|programmed\s+stimulation|wenkebach", base):
@@ -139,6 +141,11 @@ def run(inventory, output):
                                                     "device_or_lead_removal_only", "nonprocedure_text_review"})
         if revision_access_check:
             unknown = False
+        clear_repair_only = (not parsing_review and "lead_repair_only" in categories
+                             and categories <= {"lead_repair_only", "adjunct_or_other_intervention",
+                                                "device_or_lead_removal_only", "nonprocedure_text_review"})
+        if clear_repair_only:
+            unknown = False
         mention_subq = any(r.get("note_mentions_subcutaneous_icd") == "1" for r in note_rows)
         mention_ev = any(r.get("note_mentions_extravascular_icd") == "1" for r in note_rows)
         device_review = bool(qualifying) and (mention_subq or mention_ev or bool(categories & {"subcutaneous_icd", "extravascular_icd"}))
@@ -148,6 +155,8 @@ def run(inventory, output):
             eligible, status = 1, "qualifying_implant_documented"
         elif clear_leadless_only:
             eligible, status = 0, "excluded_leadless_only"
+        elif clear_repair_only:
+            eligible, status = 0, "excluded_lead_repair_only"
         elif revision_access_check:
             # The R merge checks access flags from BOTH sources before deciding.
             eligible, status = "", "revision_requires_positive_access_flag"
