@@ -44,6 +44,9 @@ class ProcedureCategoryTests(unittest.TestCase):
                 "5": "- Pacemaker insertion (RA): Aveir leadless device",
                 "6": "- Temporary venous pacemaker placement\n- ICD insertion",
                 "7": "- Generator change",
+                "10": "- US-guided femoral venous access\n- Dual chamber leadless pacemaker implant (Aveir DR)\n- Please apply pressure to your groin. Do not apply lotions",
+                "11": "- Dual chamber leadless pacemaker implant (Aveir DR)\n- Right ventricular lead insertion",
+                "12": "- Dual chamber leadless pacemaker implant (Aveir DR)\n- Lead reposition",
             }
             with source.open("w", newline="", encoding="utf-8") as handle:
                 writer = csv.writer(handle)
@@ -61,6 +64,11 @@ class ProcedureCategoryTests(unittest.TestCase):
                 self.assertEqual(rows[mrn]["note_access_eligible"], "1")
             for mrn in ["2", "3", "5", "7", "8"]:
                 self.assertEqual(rows[mrn]["note_access_eligible"], "0")
+            self.assertEqual(rows["10"]["note_access_eligible"], "0")
+            self.assertEqual(rows["10"]["eligibility_status"], "excluded_leadless_only")
+            self.assertEqual(rows["10"]["needs_review"], "0")
+            self.assertEqual(rows["11"]["note_access_eligible"], "1")
+            self.assertEqual(rows["12"]["note_access_eligible"], "")
             self.assertEqual(rows["7"]["generator_miheart_check"], "1")
             self.assertEqual(rows["8"]["eligibility_status"], "excluded_missing_procedures_section")
             marker = output / "my_notes.md"
@@ -68,7 +76,7 @@ class ProcedureCategoryTests(unittest.TestCase):
             categorize_inventory(inventory, output)
             self.assertEqual(marker.read_text(), "keep me")
             with (output / "procedure_eligibility.csv").open(newline="", encoding="utf-8") as handle:
-                self.assertEqual(len(list(csv.DictReader(handle))), 9)
+                self.assertEqual(len(list(csv.DictReader(handle))), 12)
 
     def test_subq_extravascular_and_mixed_case(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:

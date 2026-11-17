@@ -127,6 +127,13 @@ def run(inventory, output):
             "missing_anesthesia_boundary", "empty_procedures_section", "unbulleted_section",
             "invalid_mrn_or_date", "interleaved_discharge_text_in_procedure_section"]) for r in note_rows)
         unknown = bool(categories & REVIEW) or "nonprocedure_text_review" in categories
+        # Discharge instructions can contaminate a reconstructed list without
+        # making an otherwise explicit leadless-only procedure ambiguous.
+        clear_leadless_only = ("leadless_pacemaker" in categories and not parsing_review
+                               and categories <= {"leadless_pacemaker", "adjunct_or_other_intervention",
+                                                  "nonprocedure_text_review"})
+        if clear_leadless_only:
+            unknown = False
         mention_subq = any(r.get("note_mentions_subcutaneous_icd") == "1" for r in note_rows)
         mention_ev = any(r.get("note_mentions_extravascular_icd") == "1" for r in note_rows)
         device_review = bool(qualifying) and (mention_subq or mention_ev or bool(categories & {"subcutaneous_icd", "extravascular_icd"}))
@@ -134,6 +141,8 @@ def run(inventory, output):
             eligible, status = 0, "excluded_missing_procedures_section"
         elif qualifying:
             eligible, status = 1, "qualifying_implant_documented"
+        elif clear_leadless_only:
+            eligible, status = 0, "excluded_leadless_only"
         elif parsing_review or unknown or not components:
             eligible, status = "", "manual_review_needed"
         else:

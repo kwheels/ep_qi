@@ -48,3 +48,7 @@
 - Kept compatibility entry points for previously shared root commands.
 - Added shared dependency instructions and exclusions for research data, outputs and Python cache files.
 - Existing tools cover access extraction, reviewed-label reconciliation, invalid-key review, compact discrepancy review and procedure inventories.
+
+## 2026-11-17
+
+- Automatically exclude clear leadless-only implants despite discharge-text contamination; preserve extraction flags and review for uncertain additional interventions.

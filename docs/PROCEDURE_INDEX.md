@@ -77,3 +77,5 @@ Both inventory and categorization output directories may already exist. Their na
 ```bash
 python3 -m unittest discover -s tests -p test_index_procedures.py -v
 ```
+
+A clear leadless-only implant with only adjuncts and discharge-text items is marked `excluded_leadless_only`, with `note_access_eligible=0` and `needs_review=0`. Extraction flags remain available for audit. Uncertain additional interventions, critical parsing errors, and separately documented qualifying transvenous implants retain their existing handling.
