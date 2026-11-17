@@ -118,3 +118,7 @@ The main script writes `access_ptx`, `access_ptx_completedemo`, and `access_ptx_
 To redraw existing aggregate results without rerunning analysis: `Rscript analysis/plot_access_results.R`. In RStudio, set the existing `hrs.output_dir` option if needed, then source that script. Named figures are replaced on rerun. Set `options(hrs.make_figures=FALSE)` to skip figures in the main analysis. Base graphics adds no package dependencies. Optional style overrides: `options(hrs.figure_colors=c("#727C89", "#176B87"), hrs.figure_family="sans")`; colors are ordered not-used, used. Keep built-in PDF font families for portable export.
 
 Figure styling: fixed 5 x 5 inches (1500 x 1500 PNG pixels at 300 dpi), compact two-column panels, white background, no gridlines, bold black axes/ticks and tick labels. PDF exports use the same physical size. Three-technique figures use the fourth quadrant for definitions; note-only figures use all four panels.
+
+The full-scale panels have white backgrounds, with no pale full-height column fills. Zoomed insets are enlarged and paired bars are spaced tightly. Unknown-count annotations are omitted from figures (the CSV retains missing counts). Only the larger panels carry the y-axis label "Pneumothorax Rate (%)"; insets retain numeric ticks and a Zoomed view heading.
+
+Both main and inset x-axis baselines join the y-axis at zero; category labels sit below the ticks with explicit spacing.

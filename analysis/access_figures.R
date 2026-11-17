@@ -28,40 +28,45 @@ write_access_figure <- function(results, output_stem, cohort_label,
       total <- c(r$n_not_used, r$n_used)
       events <- c(r$ptx_not_used, r$ptx_used)
       pct <- c(r$pct_ptx_not_used, r$pct_ptx_used)
+      x <- c(1.15, 1.85)
       par(fig = c(left, right, bottom, top), new = i > 1,
-          mai = c(0.30, 0.30, 0.31, 0.07), mgp = c(1.6, 0.38, 0), tcl = -0.24,
+          mai = c(0.34, 0.38, 0.31, 0.07), mgp = c(1.6, 0.38, 0), tcl = -0.24,
           las = 1, cex.axis = 0.8)
       plot(NA, xlim = c(0.45, 2.55), ylim = c(0, 100), xaxs = "i", yaxs = "i",
            axes = FALSE, xlab = "", ylab = "")
       axis(2, at = c(0, 50, 100))
-      axis(1, at = 1:2, labels = paste0(c("Not used", "Used"), "\nN = ", total), tick = TRUE, line = 0.1)
+      mtext("Pneumothorax Rate (%)", side = 2, line = 1.35, las = 0, cex = 0.72, font = 2)
+      axis(1, at = x, labels = FALSE, pos = 0)
+      segments(0.45, 0, 2.55, 0)
+      mtext(paste0(c("Not used", "Used"), "\nN = ", total), side = 1, at = x,
+            line = 0.8, cex = 0.8, font = 2)
       for (j in 1:2) if (total[j] > 0) {
-        rect(j - 0.28, 0, j + 0.28, 100, col = "#EDF0F3", border = NA)
-        rect(j - 0.28, 0, j + 0.28, pct[j], col = colors[j], border = NA)
+        rect(x[j] - 0.27, 0, x[j] + 0.27, pct[j], col = colors[j], border = NA)
       }
-      axis(1, at = c(0.45, 2.55), labels = FALSE, tick = FALSE)
       label <- if (r$technique == "Fluoroscopy without venogram") "Fluoroscopy only" else
         if (r$technique == "Venogram or fluoroscopy") "Venogram / fluoroscopy" else r$technique
       title(main = label, cex.main = 1, line = 1.55)
-      mtext(paste0(p_label(r$p_value), if (isTRUE(r$sparse_expected_counts)) " *" else "", " | unknown: ", r$n_missing),
+      mtext(paste0(p_label(r$p_value), if (isTRUE(r$sparse_expected_counts)) " *" else ""),
             side = 3, line = 0.2, cex = 0.8)
-      par(fig = c(left + 0.115, right - 0.015, bottom + 0.135, top - 0.085),
-          mai = c(0.13, 0.20, 0.13, 0.025), new = TRUE, mgp = c(1.4, 0.3, 0), tcl = -0.22)
+      par(fig = c(left + 0.105, right - 0.005, bottom + 0.105, top - 0.065),
+          mai = c(0.18, 0.20, 0.13, 0.025), new = TRUE, mgp = c(1.4, 0.3, 0), tcl = -0.22)
       plot(NA, xlim = c(0.45, 2.55), ylim = c(0, zoom_max), xaxs = "i", yaxs = "i",
            axes = FALSE, xlab = "", ylab = "")
-      # Opaque inset backgrounds keep full-height outer bars from showing through.
+      # Keep the zoom panel background white.
       rect(0.45, 0, 2.55, zoom_max, col = "white", border = NA)
       ticks <- pretty(c(0, zoom_max), n = 3)
       axis(2, at = ticks[ticks >= 0 & ticks <= zoom_max], cex.axis = 0.75)
-      axis(1, at = 1:2, labels = c("Not used", "Used"), tick = TRUE, cex.axis = 0.7)
+      axis(1, at = x, labels = FALSE, pos = 0)
+      segments(0.45, 0, 2.55, 0)
+      mtext(c("Not used", "Used"), side = 1, at = x, line = 0.65, cex = 0.7, font = 2)
       for (j in 1:2) {
-        if (total[j] > 0) rect(j - 0.24, 0, j + 0.24, pct[j], col = colors[j], border = NA)
-        text(j, if (total[j] > 0) pct[j] + zoom_max * 0.07 else zoom_max * 0.07,
+        if (total[j] > 0) rect(x[j] - 0.27, 0, x[j] + 0.27, pct[j], col = colors[j], border = NA)
+        text(x[j], if (total[j] > 0) pct[j] + zoom_max * 0.07 else zoom_max * 0.07,
              labels = if (total[j] > 0) sprintf("%d/%d\n%.2f%%", events[j], total[j], pct[j]) else "N = 0\nNot estimable",
              cex = 0.68, adj = c(0.5, 0))
       }
 
-      mtext("PTX (%) - zoom", side = 3, line = 0.3, cex = 0.72)
+      mtext("Zoomed view", side = 3, line = 0.3, cex = 0.72)
     }
     par(fig = c(0, 1, 0, 1), mar = rep(0, 4), new = TRUE)
     plot.new()
