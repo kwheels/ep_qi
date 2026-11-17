@@ -68,3 +68,5 @@
 - Refine nested figures with white backgrounds, larger insets, tighter paired bars, no unknown annotations, and explicit pneumothorax-rate labels on the full-scale axes only.
 
 - Join x/y axes at zero and separate category labels from the baselines in both main panels and zoomed insets.
+
+- Replace base graphics with ggplot2 nested charts, apply the JAMA-inspired palette, remove inset headings and retain aligned zero baselines and clear labels. Requires ggplot2 >= 3.4.0.
