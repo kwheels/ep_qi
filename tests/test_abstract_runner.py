@@ -3,6 +3,7 @@ import csv
 import datetime as dt
 import os
 import shutil
+import struct
 import subprocess
 import tempfile
 import unittest
@@ -87,7 +88,10 @@ class AbstractRunnerTests(unittest.TestCase):
             self.assertTrue((output / "shareable/cephalic_cutdown_summary.csv").exists())
             for stem in ["access_ptx", "access_ptx_completedemo", "access_ptx_noteonly"]:
                 for extension in ["pdf", "png"]:
-                    self.assertGreater((output / "shareable" / (stem + "." + extension)).stat().st_size, 1000)
+                    image_path = output / "shareable" / (stem + "." + extension)
+                    self.assertGreater(image_path.stat().st_size, 1000)
+                    if extension == "png":
+                        self.assertEqual(struct.unpack(">II", image_path.read_bytes()[16:24]), (1500, 1500))
             redraw_expression = ('options(hrs.output_dir=' + json.dumps(output.as_posix()) + '); '
                                  'source("analysis/plot_access_results.R")')
             redraw = subprocess.run([rscript, "--vanilla", "-e", redraw_expression], cwd=str(repo), env=environment,

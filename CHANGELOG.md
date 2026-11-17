@@ -62,3 +62,5 @@
 - Make note ultrasound extraction site-aware: exclude femoral-only evidence, retain linked axillary/subclavian ultrasound, and flag uncertain site linkage with reviewable evidence.
 
 - Add nested full-scale/zoomed PTX figures with event counts, percentages and Pearson p-values for all three abstract cohorts; support redrawing from aggregate CSVs.
+
+- Restyle abstract figures to the requested minimalist 5-by-5-inch format: no gridlines, bold black axes/ticks, compact panels and 300-dpi PNG export.
