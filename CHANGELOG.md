@@ -72,3 +72,5 @@
 - Replace base graphics with ggplot2 nested charts, apply the JAMA-inspired palette, remove inset headings and retain aligned zero baselines and clear labels. Requires ggplot2 >= 3.4.0.
 
 - Tighten ggplot x-label padding, enlarge insets and place p-values inside plots. Add a stricter note-covered no-positive-technique QC export including micropuncture.
+
+- Add a standard-library Python exporter for selected eligibility/PTX cases from the saved final analysis dataset, with explicit match-status reporting.
