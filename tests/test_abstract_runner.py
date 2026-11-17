@@ -85,7 +85,18 @@ class AbstractRunnerTests(unittest.TestCase):
             self.assertTrue((output / "private/noteonly_no_access_listed.csv").exists())
             self.assertTrue((output / "shareable/noteonly_access_coverage.csv").exists())
             self.assertTrue((output / "shareable/cephalic_cutdown_summary.csv").exists())
+            for stem in ["access_ptx", "access_ptx_completedemo", "access_ptx_noteonly"]:
+                for extension in ["pdf", "png"]:
+                    self.assertGreater((output / "shareable" / (stem + "." + extension)).stat().st_size, 1000)
+            redraw_expression = ('options(hrs.output_dir=' + json.dumps(output.as_posix()) + '); '
+                                 'source("analysis/plot_access_results.R")')
+            redraw = subprocess.run([rscript, "--vanilla", "-e", redraw_expression], cwd=str(repo), env=environment,
+                                    capture_output=True, text=True)
+            self.assertEqual(redraw.returncode, 0, redraw.stdout + redraw.stderr)
             for path in (output / "shareable").glob("*"):
+                if path.suffix in {".pdf", ".png"}:
+                    self.assertGreater(path.stat().st_size, 1000)
+                    continue
                 self.assertNotIn("SYNTHETIC_PRIVATE_DIAGNOSIS", path.read_text(encoding="utf-8"))
                 self.assertNotIn("synthetic-guid-", path.read_text(encoding="utf-8"))
             self.assertTrue((output / "private/diagnosis_terms_for_review.csv").exists())

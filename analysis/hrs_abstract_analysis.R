@@ -10,6 +10,7 @@ analysis_dir <- if (length(script_arg)) dirname(normalizePath(sub("^--file=", ""
   if (file.exists("analysis/note_merge_helpers.R")) "analysis" else "."
 source(file.path(analysis_dir, "note_merge_helpers.R"))
 source(file.path(analysis_dir, "abstract_helpers.R"))
+source(file.path(analysis_dir, "access_figures.R"))
 
 # Configuration: paths can be changed here or set via options() before source().
 data_dir <- getOption("hrs.data_dir", "/home/kwheels/cied_complications")
@@ -129,6 +130,13 @@ write_csv(access_comparison_table(sensitivity_cohorts$noteonly, split_imaging = 
           file.path(shareable_dir, "access_chisquared_noteonly.csv"))
 write_csv(sensitivity_cohort_counts(sensitivity_cohorts),
           file.path(shareable_dir, "access_sensitivity_cohort_counts.csv"))
+if (getOption("hrs.make_figures", TRUE)) {
+  write_access_figure(access_results, file.path(shareable_dir, "access_ptx"), "All eligible procedures")
+  write_access_figure(access_comparison_table(sensitivity_cohorts$completedemo),
+    file.path(shareable_dir, "access_ptx_completedemo"), "Eligible procedures with demographic linkage")
+  write_access_figure(access_comparison_table(sensitivity_cohorts$noteonly, split_imaging = TRUE),
+    file.path(shareable_dir, "access_ptx_noteonly"), "Eligible procedures with procedure notes")
+}
 note_coverage <- note_access_coverage(cohort)
 write_csv(note_coverage$review, file.path(private_dir, "noteonly_no_access_listed.csv"))
 write_csv(note_coverage$guidance_review, file.path(private_dir, "noteonly_no_guidance_listed.csv"))

@@ -60,3 +60,5 @@
 - Automatically exclude lead-repair-only procedures while retaining mixed cases with a separately documented qualifying implant.
 
 - Make note ultrasound extraction site-aware: exclude femoral-only evidence, retain linked axillary/subclavian ultrasound, and flag uncertain site linkage with reviewable evidence.
+
+- Add nested full-scale/zoomed PTX figures with event counts, percentages and Pearson p-values for all three abstract cohorts; support redrawing from aggregate CSVs.
