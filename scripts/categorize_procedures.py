@@ -36,7 +36,7 @@ def categorize(label, original):
     text = original.lower()
     base = label.lower()
     # Device names in the original item must override a generic insertion label.
-    if has(r"\b(?:leadless|aveir|micra)\b", text):
+    if has(r"\b(?:leadless|aveir|micra)\b|\bAbbott\s+IPG\s+LSP\w*\b", text):
         return "leadless_pacemaker"
     if SUBCUTANEOUS_ICD.search(text):
         return "subcutaneous_icd"
@@ -134,6 +134,11 @@ def run(inventory, output):
                                                   "nonprocedure_text_review"})
         if clear_leadless_only:
             unknown = False
+        revision_access_check = (not parsing_review and "lead_revision_reposition_review" in categories
+                                 and categories <= {"lead_revision_reposition_review", "adjunct_or_other_intervention",
+                                                    "device_or_lead_removal_only", "nonprocedure_text_review"})
+        if revision_access_check:
+            unknown = False
         mention_subq = any(r.get("note_mentions_subcutaneous_icd") == "1" for r in note_rows)
         mention_ev = any(r.get("note_mentions_extravascular_icd") == "1" for r in note_rows)
         device_review = bool(qualifying) and (mention_subq or mention_ev or bool(categories & {"subcutaneous_icd", "extravascular_icd"}))
@@ -143,6 +148,9 @@ def run(inventory, output):
             eligible, status = 1, "qualifying_implant_documented"
         elif clear_leadless_only:
             eligible, status = 0, "excluded_leadless_only"
+        elif revision_access_check:
+            # The R merge checks access flags from BOTH sources before deciding.
+            eligible, status = "", "revision_requires_positive_access_flag"
         elif parsing_review or unknown or not components:
             eligible, status = "", "manual_review_needed"
         else:
@@ -162,9 +170,9 @@ def run(inventory, output):
                            has_temporary_pacing=int("temporary_pacing" in categories),
                            has_attempted_lead_implant=int("attempted_transvenous_lead_implant" in categories),
                            generator_miheart_check=int("generator_only_or_change_miheart_check" in categories),
-                           needs_review=int(parsing_review or unknown or device_review or eligible == ""),
+                           needs_review=int(parsing_review or unknown or device_review or (eligible == "" and not revision_access_check)),
                            review_reasons="; ".join(reason for condition, reason in [
-                               (eligible == "", "Eligibility unresolved"),
+                               (eligible == "" and not revision_access_check, "Eligibility unresolved"),
                                (parsing_review, "Section extraction needs review"),
                                (unknown, "Uncertain or nonprocedure item(s)"),
                                (device_review, "Mixed or historical nontransvenous ICD mention")]

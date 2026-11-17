@@ -22,6 +22,8 @@ class ProcedureCategoryTests(unittest.TestCase):
             ("Lead extraction", "Lead extraction", "device_or_lead_removal_only"),
             ("Subcutaneous coil insertion", "Subcutaneous coil insertion", "nontransvenous_system_review"),
             ("Lead revision", "Lead revision", "lead_revision_reposition_review"),
+            ("Atrial device insertion", "Atrial device insertion: Abbott IPG LSP201A", "leadless_pacemaker"),
+            ("Right ventricular device insertion", "Right ventricular device insertion: Abbott IPG LSP202V", "leadless_pacemaker"),
             ("ICD insertion", "ICD insertion: Boston Scientific Sub-Q ICD", "subcutaneous_icd"),
             ("ICD insertion", "ICD insertion: Medtronic Extravascular ICD", "extravascular_icd"),
             ("EV-ICD insertion", "EV-ICD insertion", "extravascular_icd"),
@@ -47,6 +49,7 @@ class ProcedureCategoryTests(unittest.TestCase):
                 "10": "- US-guided femoral venous access\n- Dual chamber leadless pacemaker implant (Aveir DR)\n- Please apply pressure to your groin. Do not apply lotions",
                 "11": "- Dual chamber leadless pacemaker implant (Aveir DR)\n- Right ventricular lead insertion",
                 "12": "- Dual chamber leadless pacemaker implant (Aveir DR)\n- Lead reposition",
+                "13": "- Lead reposition\n- Device interrogation and programming",
             }
             with source.open("w", newline="", encoding="utf-8") as handle:
                 writer = csv.writer(handle)
@@ -54,6 +57,7 @@ class ProcedureCategoryTests(unittest.TestCase):
                 for mrn, items in cases.items():
                     writer.writerow([mrn, "2024-01-01", "PROCEDURES PERFORMED:\n" + items + "\nANESTHESIA: General"])
                 writer.writerow(["8", "2024-01-01", "No requested section"])
+                writer.writerow(["14", "2024-01-01", "PROCEDURE: Dual chamber leadless pacemaker implant\nPROCEDURES PERFORMED:\n- Atrial device insertion: Synthetic manufacturer\n- Right ventricular device insertion: Synthetic manufacturer\nANESTHESIA: MAC"])
                 writer.writerow(["9", "2024-01-01", "PROCEDURES PERFORMED:\n- ILR removal\nANESTHESIA: Local\nPROCEDURES PERFORMED:\n- ICD insertion\nANESTHESIA: General"])
             inventory, output = folder / "inventory", folder / "categorized"
             build_inventory(source, inventory)
@@ -69,6 +73,10 @@ class ProcedureCategoryTests(unittest.TestCase):
             self.assertEqual(rows["10"]["needs_review"], "0")
             self.assertEqual(rows["11"]["note_access_eligible"], "1")
             self.assertEqual(rows["12"]["note_access_eligible"], "")
+            self.assertEqual(rows["12"]["needs_review"], "1")
+            self.assertEqual(rows["13"]["eligibility_status"], "revision_requires_positive_access_flag")
+            self.assertEqual(rows["13"]["needs_review"], "0")
+            self.assertEqual(rows["14"]["eligibility_status"], "excluded_leadless_only")
             self.assertEqual(rows["7"]["generator_miheart_check"], "1")
             self.assertEqual(rows["8"]["eligibility_status"], "excluded_missing_procedures_section")
             marker = output / "my_notes.md"
@@ -76,7 +84,7 @@ class ProcedureCategoryTests(unittest.TestCase):
             categorize_inventory(inventory, output)
             self.assertEqual(marker.read_text(), "keep me")
             with (output / "procedure_eligibility.csv").open(newline="", encoding="utf-8") as handle:
-                self.assertEqual(len(list(csv.DictReader(handle))), 12)
+                self.assertEqual(len(list(csv.DictReader(handle))), 14)
 
     def test_subq_extravascular_and_mixed_case(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:

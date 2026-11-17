@@ -129,6 +129,8 @@ def run(input_path, output_dir):
             items, section, extraction_issues = extract(row["full_note"])
             issues.extend(extraction_issues)
             labels = [procedure_label(item) for item in items]
+            procedure_heading = re.search(r"(?:^|\n)\s*PROCEDURE\s*:\s*([^\n\r]+)", row["full_note"], re.I)
+            leadless_heading = procedure_heading and re.search(r"\bleadless\b", procedure_heading.group(1), re.I)
             common = dict(source_row=source_row, mrn=mrn, procedure_date=date, note_id=row.get("note_id", ""))
             subq, ev, evidence = device_mentions(row["full_note"])
             records.append(dict(common, procedure_count=len(items), distinct_procedure_count=len(set(l.casefold() for l in labels)),
@@ -137,6 +139,8 @@ def run(input_path, output_dir):
                                 nontransvenous_device_evidence=evidence,
                                 needs_review=int(bool(issues)), review_reason="; ".join(issues), procedures_section=section))
             for number, (item, label) in enumerate(zip(items, labels), 1):
+                if leadless_heading and re.search(r"\b(?:atrial|ventricular)\s+device\s+insertion\b", label, re.I):
+                    item += " [PROCEDURE heading: " + procedure_heading.group(1).strip() + "]"
                 normalized = label.casefold()
                 if normalized not in index:
                     index[normalized] = dict(label=label, mentions=0, rows=set(), procedures=set(), patients=set(),

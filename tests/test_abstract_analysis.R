@@ -80,6 +80,15 @@ baseline$fluoroscopy_note[1] <- FALSE
 baseline$cephalic_cutdown_note <- c(TRUE, NA, NA)
 stopifnot(abstract_cohort(baseline)$access_cohort_include[1])
 
+# Note-defined revision also requires positive access when MiHeart says new implant.
+note_revision_case <- baseline[1, ]
+note_revision_case$procedure_list <- "New Implant"
+note_revision_case$note_eligibility_status <- "revision_requires_positive_access_flag"
+note_revision_case$cephalic_cutdown_note <- FALSE
+stopifnot(!abstract_cohort(note_revision_case)$access_cohort_include[1])
+note_revision_case$us_note <- TRUE
+stopifnot(abstract_cohort(note_revision_case)$access_cohort_include[1])
+
 # Multiple PTX diagnosis dates assigned to the same procedure do not multiply rows.
 ptx <- tibble(mrn = c("1", "1", "9"), date_diagnosed = c("01/02/2024", "01/03/2024", "01/03/2024"))
 attached <- attach_ptx(baseline, ptx)

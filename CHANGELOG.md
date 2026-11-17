@@ -52,3 +52,5 @@
 ## 2026-11-17
 
 - Automatically exclude clear leadless-only implants despite discharge-text contamination; preserve extraction flags and review for uncertain additional interventions.
+
+- Recognize Abbott IPG LSP and explicit leadless PROCEDURE headings; route uncomplicated revisions/repositions to automatic merged access-flag eligibility instead of manual review.

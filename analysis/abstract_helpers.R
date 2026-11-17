@@ -5,8 +5,10 @@ abstract_cohort <- function(data, revision_policy = c("access_flag", "exclude"))
   data <- apply_access_eligibility(data)
   text <- coalesce(as.character(data$procedure_list), "")
   nontransvenous <- str_detect(text, regex("loop[ -]*recorder|\\bILR\\b|leadless|epicardial|sub[ -]?(q|cutaneous)[ -]*(ICD|defibrillator)|\\bSQ?[ -]?ICD\\b|extra[ -]*vascular[ -]*(ICD|defibrillator)|\\bEV[ -]*ICD\\b", TRUE))
-  data$unconfirmed_revision_access <- (data$lead_revision | data$lead_reposition) &
-    !data$new_implant & !(data$note_access_eligible %in% TRUE) & !(data$note_access_eligible %in% FALSE)
+  note_revision <- if ("note_eligibility_status" %in% names(data))
+    str_detect(coalesce(data$note_eligibility_status, ""), fixed("revision_requires_positive_access_flag")) else rep(FALSE, nrow(data))
+  data$unconfirmed_revision_access <- (data$lead_revision | data$lead_reposition | note_revision) &
+    (!data$new_implant | note_revision) & !(data$note_access_eligible %in% TRUE) & !(data$note_access_eligible %in% FALSE)
   evidence_columns <- intersect(c("us", "venogram", "micro_puncture", "fluoroscopy", "fluoroscopy_documented",
     "us_database", "venogram_database", "micro_puncture_database", "fluoroscopy_database",
     "us_note", "venogram_note", "micro_puncture_note", "fluoroscopy_note",

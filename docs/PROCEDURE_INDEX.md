@@ -79,3 +79,5 @@ python3 -m unittest discover -s tests -p test_index_procedures.py -v
 ```
 
 A clear leadless-only implant with only adjuncts and discharge-text items is marked `excluded_leadless_only`, with `note_access_eligible=0` and `needs_review=0`. Extraction flags remain available for audit. Uncertain additional interventions, critical parsing errors, and separately documented qualifying transvenous implants retain their existing handling.
+
+Leadless recognition includes Abbott IPG LSP model names and explicit leadless PROCEDURE headings for atrial/ventricular device-insertion items. Straightforward revision/reposition cases use revision_requires_positive_access_flag with blank note_access_eligible and needs_review=0: the abstract R merge retains them only with a positive access flag from either database or notes, otherwise excludes them. The blank preserves the opportunity to check MiHeart before exclusion.
