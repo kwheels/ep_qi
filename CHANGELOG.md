@@ -54,3 +54,5 @@
 - Automatically exclude clear leadless-only implants despite discharge-text contamination; preserve extraction flags and review for uncertain additional interventions.
 
 - Recognize Abbott IPG LSP and explicit leadless PROCEDURE headings; route uncomplicated revisions/repositions to automatic merged access-flag eligibility instead of manual review.
+
+- Recognize Medtronic Aurora, DVEA3E4, EV240163 and EV-CD wording as extravascular ICD clues, preventing EV leads from qualifying as transvenous implants.

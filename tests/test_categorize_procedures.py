@@ -27,6 +27,10 @@ class ProcedureCategoryTests(unittest.TestCase):
             ("ICD insertion", "ICD insertion: Boston Scientific Sub-Q ICD", "subcutaneous_icd"),
             ("ICD insertion", "ICD insertion: Medtronic Extravascular ICD", "extravascular_icd"),
             ("EV-ICD insertion", "EV-ICD insertion", "extravascular_icd"),
+            ("Lead insertion", "Lead insertion: Medtronic lead EV240163", "extravascular_icd"),
+            ("ICD insertion", "ICD insertion: Medtronic Aurora", "extravascular_icd"),
+            ("ICD insertion", "ICD insertion: Medtronic ICD DVEA3E4 Aurora EV-ICD MRI", "extravascular_icd"),
+            ("New Implantation of an EV-CD", "New Implantation of an EV-CD", "extravascular_icd"),
             ("S-ICD insertion", "S-ICD insertion", "subcutaneous_icd"),
             ("ICD insertion", "ICD insertion: Boston Scientific transvenous ICD with a subcutaneous pocket", "transvenous_icd_implant"),
         ]
@@ -50,6 +54,7 @@ class ProcedureCategoryTests(unittest.TestCase):
                 "11": "- Dual chamber leadless pacemaker implant (Aveir DR)\n- Right ventricular lead insertion",
                 "12": "- Dual chamber leadless pacemaker implant (Aveir DR)\n- Lead reposition",
                 "13": "- Lead reposition\n- Device interrogation and programming",
+                "15": "- ICD insertion: Medtronic ICD DVEA3E4 Aurora EV-ICD MRI\n- Lead insertion: Medtronic lead EV240163\n- Insertion of TYRX Absorbable antibacterial envelope\n- Defibrillation threshold test\n- Device interrogation and programming",
             }
             with source.open("w", newline="", encoding="utf-8") as handle:
                 writer = csv.writer(handle)
@@ -77,6 +82,9 @@ class ProcedureCategoryTests(unittest.TestCase):
             self.assertEqual(rows["13"]["eligibility_status"], "revision_requires_positive_access_flag")
             self.assertEqual(rows["13"]["needs_review"], "0")
             self.assertEqual(rows["14"]["eligibility_status"], "excluded_leadless_only")
+            self.assertEqual(rows["15"]["note_access_eligible"], "0")
+            self.assertEqual(rows["15"]["has_extravascular_icd"], "1")
+            self.assertEqual(rows["15"]["needs_review"], "0")
             self.assertEqual(rows["7"]["generator_miheart_check"], "1")
             self.assertEqual(rows["8"]["eligibility_status"], "excluded_missing_procedures_section")
             marker = output / "my_notes.md"
@@ -84,7 +92,7 @@ class ProcedureCategoryTests(unittest.TestCase):
             categorize_inventory(inventory, output)
             self.assertEqual(marker.read_text(), "keep me")
             with (output / "procedure_eligibility.csv").open(newline="", encoding="utf-8") as handle:
-                self.assertEqual(len(list(csv.DictReader(handle))), 14)
+                self.assertEqual(len(list(csv.DictReader(handle))), 15)
 
     def test_subq_extravascular_and_mixed_case(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:
