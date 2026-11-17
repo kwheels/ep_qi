@@ -32,6 +32,7 @@ OTHER_END = re.compile(
     r"Other\s+Discharge\s+Instructions)\s*\.?", re.I)
 BULLET = re.compile(r"(?:^|\n)\s*(?:[-*\u2022]|\d+[.)])\s+|[ \t]+[-\u2022][ \t]+")
 LOOP = re.compile(r"\b(?:loop\s+recorder|implantable\s+(?:cardiac|heart)\s+monitor|ILR|ICM)\b", re.I)
+DISCHARGE_HEADING = re.compile(r"\s*(?:Incision\s+Care\s+Instructions|Activity\s+restrictions|Other\s+Discharge\s+Instructions)", re.I)
 
 
 def extract(note):
@@ -46,6 +47,14 @@ def extract(note):
         anesthesia = END.search(text, start.end(), next_start)
         other = OTHER_END.search(text, start.end(), next_start)
         ends = [(m.start(), kind) for m, kind in [(anesthesia, "anesthesia"), (other, "other")] if m]
+        # Some reconstructed notes interleave discharge lines into a duplicated
+        # procedures list. Recover that bounded list only when every intervening
+        # heading is discharge-related; do not cross HISTORY/DETAILS/etc.
+        if anesthesia and other and other.start() < anesthesia.start():
+            intervening = list(OTHER_END.finditer(text, start.end(), anesthesia.start()))
+            if intervening and all(DISCHARGE_HEADING.match(m.group()) for m in intervening):
+                ends = [(anesthesia.start(), "anesthesia")]
+                issues.append("interleaved_discharge_text_in_procedure_section")
         if ends:
             stop, kind = min(ends)
             if kind != "anesthesia":

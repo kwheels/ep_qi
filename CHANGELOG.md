@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+- Recover lead-insertion items from bounded duplicated sections containing interleaved discharge text, retaining extraction QC and explicit review reasons.
+
 - Detect Sub-Q/S-ICD and extravascular/EV-ICD using full procedure items, scan full-note mentions for review, and audit exclusions/mixed cases in the R analysis.
 
 - Carry optional manually reviewed cephalic cutdown flags into the R merge, revision evidence and access-coverage audits, with separate documented-use counts and unknown coverage.

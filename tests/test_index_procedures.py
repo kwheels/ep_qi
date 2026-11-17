@@ -61,6 +61,19 @@ class ProcedureIndexTests(unittest.TestCase):
             with (output / "procedure_index.csv").open(newline="", encoding="utf-8") as handle:
                 self.assertEqual(len(list(csv.DictReader(handle))), 1)
 
+    def test_interleaved_reconstruction_recovers_lead_before_anesthesia(self):
+        text = ("PROCEDURES PERFORMED:\n- Ultrasound guidance for venous access\nANESTHESIA: MAC\n"
+                "PROCEDURES PERFORMED:\n- Upper extremity venogram for venous access\n"
+                "Incision Care Instructions\n- No driving for 24 hours post implant\n"
+                "Other Discharge Instructions\n- Right ventricular lead insertion: Synthetic lead\n"
+                "- Lead abandon: Old synthetic lead\nANESTHESIA: MAC\nHISTORY: unrelated")
+        items, _, flags = extract(text)
+        self.assertIn("Right ventricular lead insertion", [procedure_label(i) for i in items])
+        self.assertIn("interleaved_discharge_text_in_procedure_section", flags)
+        # A genuine intervening history/details section is still a hard stop.
+        text = "PROCEDURES PERFORMED:\n- EP study\nHISTORY: prior surgery\n- Pacemaker insertion\nANESTHESIA: Local"
+        self.assertEqual(extract(text)[0], ["EP study"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -125,7 +125,7 @@ def run(inventory, output):
         all_missing = all("missing_procedures_section" in r["review_reason"] for r in note_rows)
         parsing_review = any(any(issue in r["review_reason"] for issue in [
             "missing_anesthesia_boundary", "empty_procedures_section", "unbulleted_section",
-            "invalid_mrn_or_date"]) for r in note_rows)
+            "invalid_mrn_or_date", "interleaved_discharge_text_in_procedure_section"]) for r in note_rows)
         unknown = bool(categories & REVIEW) or "nonprocedure_text_review" in categories
         mention_subq = any(r.get("note_mentions_subcutaneous_icd") == "1" for r in note_rows)
         mention_ev = any(r.get("note_mentions_extravascular_icd") == "1" for r in note_rows)
@@ -154,6 +154,12 @@ def run(inventory, output):
                            has_attempted_lead_implant=int("attempted_transvenous_lead_implant" in categories),
                            generator_miheart_check=int("generator_only_or_change_miheart_check" in categories),
                            needs_review=int(parsing_review or unknown or device_review or eligible == ""),
+                           review_reasons="; ".join(reason for condition, reason in [
+                               (eligible == "", "Eligibility unresolved"),
+                               (parsing_review, "Section extraction needs review"),
+                               (unknown, "Uncertain or nonprocedure item(s)"),
+                               (device_review, "Mixed or historical nontransvenous ICD mention")]
+                               if condition),
                            extraction_flags="; ".join(sorted({r["review_reason"] for r in note_rows if r["review_reason"]})),
                            source_rows="; ".join(r["source_row"] for r in note_rows)))
     if not cohort:

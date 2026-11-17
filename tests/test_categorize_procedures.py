@@ -83,6 +83,11 @@ class ProcedureCategoryTests(unittest.TestCase):
                     ("3", "- Sub-Q ICD removal\n- Atrial lead insertion\n- Pacemaker insertion", ""),
                     ("4", "- ICD insertion: Transvenous ICD", "HISTORY: Previous Sub-Q ICD removal.\n")]:
                     writer.writerow([mrn, "2024-01-01", history + "PROCEDURES PERFORMED:\n" + items + "\nANESTHESIA: General"])
+                writer.writerow(["5", "2024-01-01",
+                    "PROCEDURES PERFORMED:\n- Ultrasound guidance for venous access\nANESTHESIA: MAC\n"
+                    "PROCEDURES PERFORMED:\n- Upper extremity venogram for venous access\n"
+                    "Incision Care Instructions\n- No driving for 24 hours post implant\n"
+                    "- Right ventricular lead insertion: Synthetic lead\n- Lead abandon: Old lead\nANESTHESIA: MAC"])
             build_inventory(source, root / "inventory")
             categorize_inventory(root / "inventory", root / "categories")
             with (root / "categories/procedure_eligibility.csv").open(newline="", encoding="utf-8") as handle:
@@ -94,6 +99,9 @@ class ProcedureCategoryTests(unittest.TestCase):
             self.assertEqual(rows["4"]["note_access_eligible"], "1")
             self.assertEqual(rows["4"]["note_mentions_subcutaneous_icd"], "1")
             self.assertEqual(rows["4"]["nontransvenous_device_needs_review"], "1")
+            self.assertEqual(rows["5"]["note_access_eligible"], "1")
+            self.assertEqual(rows["5"]["eligibility_status"], "qualifying_implant_documented")
+            self.assertIn("Section extraction needs review", rows["5"]["review_reasons"])
 
 
 if __name__ == "__main__":
