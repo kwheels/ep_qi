@@ -16,9 +16,9 @@ try:
 except ImportError:
     from reconcile_access import mrn_text, date_text, write_csv
 try:
-    from .procedure_terms import SUBCUTANEOUS_ICD, EXTRAVASCULAR_ICD
+    from .procedure_terms import SUBCUTANEOUS_ICD, EXTRAVASCULAR_ICD, TUNNELED_COMPONENT
 except ImportError:
-    from procedure_terms import SUBCUTANEOUS_ICD, EXTRAVASCULAR_ICD
+    from procedure_terms import SUBCUTANEOUS_ICD, EXTRAVASCULAR_ICD, TUNNELED_COMPONENT
 
 write_csv = partial(write_csv, overwrite=True)
 
@@ -42,6 +42,8 @@ def categorize(label, original):
         return "subcutaneous_icd"
     if EXTRAVASCULAR_ICD.search(text):
         return "extravascular_icd"
+    if TUNNELED_COMPONENT.search(text):
+        return "tunneled_nontransvenous_component"
     if has(r"\btemporar\w*\b|externalized", text) and has(r"pacemaker|pacing|\bppm\b", text):
         return "temporary_pacing"
     if has(r"loop\s*recorder|event[_ -]*recorder|\b(?:ilr|icm)\b|implantable\s+cardiac\s+monitor", text):
@@ -146,6 +148,13 @@ def run(inventory, output):
                                                 "device_or_lead_removal_only", "nonprocedure_text_review"})
         if clear_repair_only:
             unknown = False
+        tunneled = bool(categories & {"tunneled_nontransvenous_component", "subcutaneous_icd", "extravascular_icd"})
+        tunneled_only = (tunneled and not parsing_review and categories <= {
+            "tunneled_nontransvenous_component", "subcutaneous_icd", "extravascular_icd",
+            "adjunct_or_other_intervention", "device_or_lead_removal_only", "nonprocedure_text_review",
+            "generator_only_or_change_miheart_check"})
+        if tunneled_only:
+            unknown = False
         mention_subq = any(r.get("note_mentions_subcutaneous_icd") == "1" for r in note_rows)
         mention_ev = any(r.get("note_mentions_extravascular_icd") == "1" for r in note_rows)
         device_review = bool(qualifying) and (mention_subq or mention_ev or bool(categories & {"subcutaneous_icd", "extravascular_icd"}))
@@ -153,6 +162,8 @@ def run(inventory, output):
             eligible, status = 0, "excluded_missing_procedures_section"
         elif qualifying:
             eligible, status = 1, "qualifying_implant_documented"
+        elif tunneled_only:
+            eligible, status = 0, "excluded_tunneled_nontransvenous_only"
         elif clear_leadless_only:
             eligible, status = 0, "excluded_leadless_only"
         elif clear_repair_only:
@@ -173,6 +184,7 @@ def run(inventory, output):
                            has_leadless=int("leadless_pacemaker" in categories),
                            has_subcutaneous_icd=int("subcutaneous_icd" in categories),
                            has_extravascular_icd=int("extravascular_icd" in categories),
+                           has_tunneled_access=int(tunneled), tunneled_access_only=int(tunneled_only),
                            note_mentions_subcutaneous_icd=int(mention_subq), note_mentions_extravascular_icd=int(mention_ev),
                            nontransvenous_device_needs_review=int(device_review),
                            nontransvenous_device_evidence=" || ".join(dict.fromkeys(r.get("nontransvenous_device_evidence", "") for r in note_rows if r.get("nontransvenous_device_evidence"))),

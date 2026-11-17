@@ -49,6 +49,23 @@ cohort <- eligibility_audit %>% filter(access_cohort_include) %>% mutate(
   # Use original documented fluoroscopy before prior venogram-priority recoding.
   venogram_or_fluoroscopy = three_way_or(venogram, fluoroscopy_documented))
 if (!nrow(cohort)) stop("No included procedures. Inspect eligibility audit and input files.")
+# Freeze the existing QC subset before regenerated QC exports replace it.
+assumption_file <- getOption("hrs.fluoroscopy_assumption_subset", file.path(private_dir, "fluoroscopy_assumption_subset.csv"))
+if (!file.exists(assumption_file)) {
+  previous_qc <- file.path(private_dir, "noteonly_no_access_listed.csv")
+  if (file.exists(previous_qc)) {
+    snapshot <- read_csv(previous_qc, col_types = cols(.default = "c"), show_col_types = FALSE)
+    if (!all(c("mrn", "procedure_date") %in% names(snapshot))) stop("QC subset requires MRN and procedure_date.")
+    write_csv(snapshot %>% select(mrn, procedure_date) %>% distinct(), assumption_file)
+  }
+}
+assumption_subset <- if (file.exists(assumption_file))
+  read_csv(assumption_file, col_types = cols(.default = "c"), show_col_types = FALSE) else
+  tibble(mrn = character(), procedure_date = character())
+if (!file.exists(assumption_file)) message("No saved no-access subset: no fluoroscopy assumptions applied on this run.")
+cohort <- apply_scoped_fluoroscopy_assumption(cohort, assumption_subset)
+write_csv(cohort %>% filter(fluoroscopy_assumption_subset), file.path(private_dir, "fluoroscopy_assumption_audit.csv"))
+write_csv(eligibility_audit %>% filter(tunneled_access), file.path(private_dir, "tunneled_access_audit.csv"))
 write_csv(eligibility_audit, file.path(private_dir, "eligibility_audit.csv"))
 write_csv(eligibility_audit %>% filter(
   note_subcutaneous_icd %in% TRUE | note_extravascular_icd %in% TRUE |
@@ -95,6 +112,7 @@ counts <- tibble(
   included_revisions_by_access_flag = sum(cohort$access_eligibility_basis == "included_revision_positive_access_flag"),
   excluded_revisions_without_access_flag = sum(eligibility_audit$access_eligibility_basis == "excluded_revision_no_positive_access_flag"),
   included_procedures_with_ptx = sum(cohort$pneumothorax),
+  n_fluoroscopy_assumed = sum(cohort$fluoroscopy_assumed),
   included_ptx_events = sum(cohort$ptx_event_count),
   pct_procedures_with_ptx = 100 * mean(cohort$pneumothorax),
   excluded_procedures_with_ptx = sum(eligibility_audit$pneumothorax[!eligibility_audit$access_cohort_include]),
@@ -175,6 +193,8 @@ writeLines(c(
   "Patient demographics use first included procedure; procedure demographics count each procedure.",
   "Patients without notes/demographics remain; missing denominators are explicit.",
   "Unknown access is not automatically FALSE; venogram/fluoroscopy is a three-valued OR.",
+  "Scoped fluoroscopy assumptions use only the preserved no-access QC subset, specific atrial/RV/LV lead insertion and no positive technique; original documented flags are preserved.",
+  "Tunneled-only subcutaneous/EV procedures are excluded and retained in private/tunneled_access_audit.csv; mixed qualifying transvenous implants remain separately flagged.",
   "Chi-squared p-values are unadjusted; inspect sparse expected-count flags.",
   "Repeated procedures within patients are not cluster-adjusted by the requested chi-squared tests.",
   "Field maps require verification; race/ethnicity and diagnoses remain provisional until reviewed.",

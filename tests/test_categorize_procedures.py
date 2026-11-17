@@ -20,7 +20,9 @@ class ProcedureCategoryTests(unittest.TestCase):
             ("ICD generator insertion", "ICD generator insertion", "generator_only_or_change_miheart_check"),
             ("EP study", "EP study", "ep_study_or_stimulation"),
             ("Lead extraction", "Lead extraction", "device_or_lead_removal_only"),
-            ("Subcutaneous coil insertion", "Subcutaneous coil insertion", "nontransvenous_system_review"),
+            ("Subcutaneous coil insertion", "Subcutaneous coil insertion", "tunneled_nontransvenous_component"),
+            ("Lead insertion", "Lead insertion: Medtronic lead Sub-Q Lead 6996SQ", "tunneled_nontransvenous_component"),
+            ("Lead insertion", "Lead insertion: Medtronic lead 6996S", "tunneled_nontransvenous_component"),
             ("Lead revision", "Lead revision", "lead_revision_reposition_review"),
             ("Lead repair", "Lead repair", "lead_repair_only"),
             ("Atrial device insertion", "Atrial device insertion: Abbott IPG LSP201A", "leadless_pacemaker"),
@@ -57,6 +59,8 @@ class ProcedureCategoryTests(unittest.TestCase):
                 "13": "- Lead reposition\n- Device interrogation and programming",
                 "16": "- Lead repair\n- Device interrogation and programming\n- No driving for 24 hours",
                 "17": "- Lead repair\n- Right ventricular lead insertion",
+                "18": "- Lead insertion: Medtronic lead Sub-Q Lead 6996SQ\n- Insertion of TYRX envelope\n- Defibrillation threshold test\n- Device interrogation and programming",
+                "19": "- Subcutaneous coil insertion\n- Right ventricular lead insertion: Synthetic transvenous lead",
                 "15": "- ICD insertion: Medtronic ICD DVEA3E4 Aurora EV-ICD MRI\n- Lead insertion: Medtronic lead EV240163\n- Insertion of TYRX Absorbable antibacterial envelope\n- Defibrillation threshold test\n- Device interrogation and programming",
             }
             with source.open("w", newline="", encoding="utf-8") as handle:
@@ -92,6 +96,13 @@ class ProcedureCategoryTests(unittest.TestCase):
             self.assertEqual(rows["16"]["eligibility_status"], "excluded_lead_repair_only")
             self.assertEqual(rows["16"]["needs_review"], "0")
             self.assertEqual(rows["17"]["note_access_eligible"], "1")
+            self.assertEqual(rows["18"]["note_access_eligible"], "0")
+            self.assertEqual(rows["18"]["has_tunneled_access"], "1")
+            self.assertEqual(rows["18"]["tunneled_access_only"], "1")
+            self.assertEqual(rows["18"]["needs_review"], "0")
+            self.assertEqual(rows["19"]["note_access_eligible"], "1")
+            self.assertEqual(rows["19"]["has_tunneled_access"], "1")
+            self.assertEqual(rows["19"]["tunneled_access_only"], "0")
             self.assertEqual(rows["7"]["generator_miheart_check"], "1")
             self.assertEqual(rows["8"]["eligibility_status"], "excluded_missing_procedures_section")
             marker = output / "my_notes.md"
@@ -99,7 +110,7 @@ class ProcedureCategoryTests(unittest.TestCase):
             categorize_inventory(inventory, output)
             self.assertEqual(marker.read_text(), "keep me")
             with (output / "procedure_eligibility.csv").open(newline="", encoding="utf-8") as handle:
-                self.assertEqual(len(list(csv.DictReader(handle))), 17)
+                self.assertEqual(len(list(csv.DictReader(handle))), 19)
 
     def test_subq_extravascular_and_mixed_case(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as temp:

@@ -8,6 +8,9 @@ SUBCUTANEOUS_ICD = re.compile(
 EXTRAVASCULAR_ICD = re.compile(
     r"\b(?:extra" + SEP + r"vascular" + SEP + r"(?:ICD|defibrillator)|EV" + SEP + r"I?CD|"
     r"EV240163|DVEA3E4|Medtronic\s+(?:ICD\s+)?Aurora|Aurora\s+(?:EV" + SEP + r"I?CD|ICD))\b", re.I)
+TUNNELED_COMPONENT = re.compile(
+    r"\b(?:sub" + SEP + r"(?:q|cutaneous)\s+(?:lead|coil|array)|6996S(?:Q)?|"
+    r"(?:lead|coil|array)\s+(?:insertion\s+)?using\s+(?:a\s+|the\s+)?(?:dedicated\s+)?tunnel\w*)\b", re.I)
 
 
 def device_mentions(text):

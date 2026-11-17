@@ -22,6 +22,14 @@ ACCESS_COURSE_NOTE = (
 
 
 class ExtractionTests(unittest.TestCase):
+    def test_fluoroscopy_typos_and_old_lead_landmark(self):
+        for term in ["flourscopic", "flouroscopic", "fluoroscopic"]:
+            note = ("Using Seldinger technique, a Cook needle was advanced under " + term +
+                    " guidance along the patient's previous leads to enter the vessel above the first rib.")
+            self.assertEqual(classify(note, "fluoroscopy")[:2], ("documented_use", "1"))
+        self.assertEqual(classify("A needle under flourscopic guidance was considered for access.", "fluoroscopy")[0], "uncertain_mention")
+        self.assertEqual(classify("Prior fluoroscopic guidance was used for needle access.", "fluoroscopy")[0], "uncertain_mention")
+
     def test_ultrasound_access_site_linkage(self):
         cases = [
             ("Ultrasound-guided femoral venous access was obtained.", "femoral_access_only", "0"),

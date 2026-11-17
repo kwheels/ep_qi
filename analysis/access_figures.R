@@ -8,6 +8,11 @@ write_access_figure <- function(results, output_stem, cohort_label,
   required <- c("technique", "n_used", "n_not_used", "ptx_used", "ptx_not_used",
                 "pct_ptx_used", "pct_ptx_not_used", "p_value", "sparse_expected_counts")
   stopifnot(all(required %in% names(results)), nrow(results) > 0, length(colors) == 2)
+  # Assemble grobs on an explicit disposable device, avoiding Rplots.pdf when
+  # called from an otherwise non-graphical Rscript session.
+  grDevices::pdf(NULL, width = 5, height = 5)
+  assembly_device <- grDevices::dev.cur()
+  on.exit(grDevices::dev.off(assembly_device), add = TRUE)
   rates <- unlist(results[c("pct_ptx_not_used", "pct_ptx_used")], use.names = FALSE)
   rates <- rates[is.finite(rates)]
   zoom_max <- if (length(rates)) min(100, max(2, ceiling(max(rates) * 1.45))) else 2
@@ -72,8 +77,10 @@ write_access_figure <- function(results, output_stem, cohort_label,
     "Full axis: 0-100%\nInsets: PTX / total; percent\nN = procedures\nTechniques may overlap",
     gp = grid::gpar(fontfamily = family, fontsize = 8),
     vp = grid::viewport(layout.pos.row = 3, layout.pos.col = 2))
+  assumed_n <- if ("n_fluoroscopy_assumed" %in% names(results)) max(results$n_fluoroscopy_assumed, 0, na.rm = TRUE) else 0
   children[[length(children) + 1]] <- grid::textGrob(
-    "Labels: PTX events / procedures; PTX %. Groups overlap.\nPearson chi-squared; no continuity correction. * Expected count <5.\nFluoroscopy only = without venogram.",
+    paste0("Labels: PTX events / procedures; PTX %. Groups overlap.\nPearson chi-squared; no continuity correction. * Expected count <5.\nFluoroscopy only = without venogram.",
+           if (assumed_n > 0) paste0("\nFluoroscopy includes ", assumed_n, " scoped assumptions.") else ""),
     gp = grid::gpar(fontfamily = family, fontsize = 5.8),
     vp = grid::viewport(layout.pos.row = rows + 2, layout.pos.col = 1:2))
   figure <- grid::grobTree(children = do.call(grid::gList, children), vp = grid::viewport(layout = layout))

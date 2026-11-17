@@ -51,6 +51,9 @@ class AbstractRunnerTests(unittest.TestCase):
                      [[str(i).zfill(5), "synthetic-guid-" + str(i), "06/01/1950 00:00", "Female" if i % 2 else "Male", "Example ethnicity",
                        "SYNTHETIC_PRIVATE_DIAGNOSIS | Condition B"] for i in range(1, 12)])
             output = root / "hrs_abstract_output"
+            (output / "private").mkdir(parents=True)
+            csv_file(output / "private/noteonly_no_access_listed.csv", ["mrn", "procedure_date"],
+                     [["00001", "2024-01-01"], ["00002", "2024-01-01"]])
             # Paths are R string literals, passed as a structured process argument.
             import json
             expression = ('options(hrs.data_dir=' + json.dumps(root.as_posix()) + '); '
@@ -61,6 +64,10 @@ class AbstractRunnerTests(unittest.TestCase):
             result = subprocess.run([rscript, "--vanilla", "-e", expression], cwd=str(repo), env=environment,
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            with (output / "private/fluoroscopy_assumption_subset.csv").open(newline="", encoding="utf-8") as handle:
+                frozen = list(csv.DictReader(handle))
+            self.assertEqual([r["mrn"] for r in frozen], ["00001", "00002"])
+            self.assertTrue((output / "private/tunneled_access_audit.csv").exists())
             with (output / "shareable/cohort_counts.csv").open(newline="", encoding="utf-8") as handle:
                 counts = next(csv.DictReader(handle))
             self.assertEqual(counts["included_procedures"], "10")

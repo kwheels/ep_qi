@@ -94,6 +94,34 @@ note_revision_case$us_note <- TRUE
 stopifnot(abstract_cohort(note_revision_case)$access_cohort_include[1])
 
 # Multiple PTX diagnosis dates assigned to the same procedure do not multiply rows.
+assumption_input <- tibble(mrn = as.character(1:10), procedure_date = as.Date("2024-01-01"),
+  has_procedure_note = TRUE, note_access_eligible = TRUE,
+  note_qualifying_procedures = "Right ventricular lead insertion", us = FALSE, venogram = FALSE,
+  fluoroscopy_documented = FALSE, micro_puncture = FALSE, cephalic_cutdown = NA,
+  imaging_access_group = "Neither")
+assumption_input$note_qualifying_procedures[3] <- "Lead insertion"
+assumption_input$us[4] <- TRUE
+assumption_input$has_procedure_note[5] <- FALSE
+assumption_input$note_access_eligible[6] <- FALSE
+assumption_input$micro_puncture[7] <- TRUE
+assumption_input$fluoroscopy_documented[8] <- NA
+assumption_input$venogram[9] <- TRUE
+assumption_input$cephalic_cutdown[10] <- TRUE
+assumed <- apply_scoped_fluoroscopy_assumption(assumption_input, assumption_input[-2, c("mrn", "procedure_date")])
+stopifnot(identical(which(assumed$fluoroscopy_assumed), 1L), !any(assumed$fluoroscopy_documented %in% TRUE))
+stopifnot(assumed$fluoroscopy_analysis[1], assumed$venogram_or_fluoroscopy[1], !assumed$fluoroscopy_analysis[2])
+stopifnot(!any(apply_scoped_fluoroscopy_assumption(assumption_input, assumption_input[FALSE, c("mrn", "procedure_date")])$fluoroscopy_assumed))
+tunnel_case <- baseline[1, ]
+tunnel_case$note_tunneled_access <- TRUE
+tunnel_case$note_tunneled_access_only <- TRUE
+tunnel_case$note_access_eligible <- FALSE
+tunnel_case$pneumothorax <- 1L
+tunnel_result <- abstract_cohort(tunnel_case)
+stopifnot(tunnel_result$tunneled_access, !tunnel_result$access_cohort_include, tunnel_result$pneumothorax == 1L)
+tunnel_case$note_tunneled_access_only <- FALSE
+tunnel_case$note_access_eligible <- TRUE
+stopifnot(abstract_cohort(tunnel_case)$access_cohort_include)
+
 ptx <- tibble(mrn = c("1", "1", "9"), date_diagnosed = c("01/02/2024", "01/03/2024", "01/03/2024"))
 attached <- attach_ptx(baseline, ptx)
 stopifnot(nrow(attached$data) == 3, attached$data$ptx_event_count[1] == 2L, nrow(attached$unmatched) == 1)

@@ -53,10 +53,13 @@ access <- data.frame(phi_mrn = c("00123", "123"), proc_date = c("2024-01-01", "2
                      ultrasound_used = c("", "1"), venogram_used = c("0", "0"),
                      micropuncture_used = c("1", "0"), fluoroscopy_used = c("", ""))
 eligibility <- data.frame(mrn = "123", procedure_date = "2024-01-01", note_access_eligible = "1")
+eligibility$has_tunneled_access <- "1"
+eligibility$tunneled_access_only <- "0"
 write.csv(access, file.path(folder, "access_technique_reviewed.csv"), row.names = FALSE)
 write.csv(eligibility, file.path(folder, "procedure_eligibility.csv"), row.names = FALSE)
 reviewed <- read_reviewed_notes(folder, file.path(folder, "procedure_eligibility.csv"))
 stopifnot(nrow(reviewed) == 1L, reviewed$us_note, reviewed$micro_puncture_note, !reviewed$fluoroscopy_note)
+stopifnot(reviewed$note_tunneled_access, !reviewed$note_tunneled_access_only)
 stopifnot(is.na(reviewed$cephalic_cutdown_note))
 access$cephalic_cutdown_used <- c("1", "")
 write.csv(access, file.path(folder, "access_technique_reviewed.csv"), row.names = FALSE)

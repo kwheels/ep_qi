@@ -85,3 +85,5 @@ Leadless recognition includes Abbott IPG LSP model names and explicit leadless P
 Extravascular ICD recognition includes EV-CD (a wording variant), Medtronic Aurora, generator model DVEA3E4, and lead model EV240163. Full original procedure items retain these model clues after label shortening; EV lead insertion is not classified as transvenous lead insertion. Full-note mentions remain audit clues rather than automatic exclusions when an independent qualifying implant is documented.
 
 Lead repair without a separately documented qualifying implant/lead insertion is classified lead_repair_only and automatically excluded (excluded_lead_repair_only). Adjuncts and discharge-text contamination alone do not require review. A separate qualifying transvenous implant still takes precedence.
+
+Subcutaneous lead/coil/array and 6996S/6996SQ items are tunneled nontransvenous components, not transvenous lead insertions. `has_tunneled_access` also groups recognized Sub-Q/EV ICD components; `tunneled_access_only=1` automatically excludes cases without a separate qualifying component. Mixed transvenous implants remain eligible and flagged.

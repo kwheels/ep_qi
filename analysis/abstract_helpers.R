@@ -4,6 +4,10 @@ abstract_cohort <- function(data, revision_policy = c("access_flag", "exclude"))
   revision_policy <- match.arg(revision_policy)
   data <- apply_access_eligibility(data)
   text <- coalesce(as.character(data$procedure_list), "")
+  note_tunnel <- if ("note_tunneled_access" %in% names(data)) data$note_tunneled_access %in% TRUE else rep(FALSE, nrow(data))
+  note_tunnel_only <- if ("note_tunneled_access_only" %in% names(data)) data$note_tunneled_access_only %in% TRUE else rep(FALSE, nrow(data))
+  data$tunneled_access <- note_tunnel | str_detect(text, regex(
+    "sub[ -]?(q|cutaneous)[ -]*(ICD|defibrillator|coil|array|lead)|\\bSQ?[ -]?ICD\\b|extra[ -]*vascular[ -]*(ICD|defibrillator)|\\bEV[ -]*I?CD\\b|6996SQ?\\b|EV240163", TRUE))
   nontransvenous <- str_detect(text, regex("loop[ -]*recorder|\\bILR\\b|leadless|epicardial|sub[ -]?(q|cutaneous)[ -]*(ICD|defibrillator)|\\bSQ?[ -]?ICD\\b|extra[ -]*vascular[ -]*(ICD|defibrillator)|\\bEV[ -]*ICD\\b", TRUE))
   note_revision <- if ("note_eligibility_status" %in% names(data))
     str_detect(coalesce(data$note_eligibility_status, ""), fixed("revision_requires_positive_access_flag")) else rep(FALSE, nrow(data))
@@ -23,6 +27,9 @@ abstract_cohort <- function(data, revision_policy = c("access_flag", "exclude"))
   data$access_eligibility_basis[retain_revision] <- "included_revision_positive_access_flag"
   data$access_eligibility_basis[affected & !retain_revision] <- if (revision_policy == "exclude")
     "excluded_unconfirmed_revision_access" else "excluded_revision_no_positive_access_flag"
+  exclude_tunnel <- note_tunnel_only | (data$tunneled_access & !(data$note_access_eligible %in% TRUE))
+  data$access_cohort_include[exclude_tunnel] <- FALSE
+  data$access_eligibility_basis[exclude_tunnel] <- "excluded_tunneled_nontransvenous_only"
   data$procedure_group <- case_when(
     data$new_implant & (data$lead_revision | data$lead_reposition | data$upgrade_downgrade) ~ "New implant plus revision/upgrade",
     data$new_implant ~ "New implant",
@@ -30,6 +37,28 @@ abstract_cohort <- function(data, revision_policy = c("access_flag", "exclude"))
     data$lead_extraction ~ "Extraction-coded case with implant/access eligibility",
     TRUE ~ "Other/unspecified"
   )
+  data
+}
+
+apply_scoped_fluoroscopy_assumption <- function(data, candidates) {
+  # Membership must come from the saved no-access QC subset, never the cohort
+  # as a whole. Keep documented flags untouched and expose inference separately.
+  if (!all(c("mrn", "procedure_date") %in% names(candidates))) stop("Fluoroscopy subset requires MRN and procedure_date.")
+  key <- function(mrn, date) paste(normalize_mrn(mrn), parse_procedure_date(date), sep = "__")
+  valid <- !is.na(normalize_mrn(candidates$mrn)) & !is.na(parse_procedure_date(candidates$procedure_date))
+  keys <- key(candidates$mrn[valid], candidates$procedure_date[valid])
+  data$fluoroscopy_assumption_subset <- key(data$mrn, data$procedure_date) %in% keys
+  lead_text <- if ("note_qualifying_procedures" %in% names(data)) coalesce(data$note_qualifying_procedures, "") else rep("", nrow(data))
+  specific_lead <- str_detect(lead_text, regex("\\b(atrial|right\\s+ventricular|left\\s+ventricular)\\s+lead\\s+insertion\\b", TRUE))
+  flag <- function(name) if (name %in% names(data)) as_access_flag(data[[name]]) else rep(NA, nrow(data))
+  no_guidance <- flag("us") %in% FALSE & flag("venogram") %in% FALSE & flag("fluoroscopy_documented") %in% FALSE
+  data$fluoroscopy_assumed <- data$fluoroscopy_assumption_subset & flag("has_procedure_note") %in% TRUE &
+    flag("note_access_eligible") %in% TRUE & specific_lead & no_guidance &
+    !(flag("micro_puncture") %in% TRUE) & !(flag("cephalic_cutdown") %in% TRUE)
+  data$fluoroscopy_analysis <- flag("fluoroscopy_documented") | data$fluoroscopy_assumed
+  data$fluoroscopy <- fluoroscopy_without_venogram(data$fluoroscopy_analysis, flag("venogram"))
+  data$venogram_or_fluoroscopy <- three_way_or(flag("venogram"), data$fluoroscopy_analysis)
+  data$imaging_access_group[data$fluoroscopy_assumed] <- "Fluoroscopy without venogram (assumed)"
   data
 }
 
@@ -85,7 +114,8 @@ access_chisquare <- function(data, variable, label) {
 access_comparison_table <- function(data, split_imaging = FALSE) {
   if (split_imaging) {
     data$venogram_for_comparison <- as_access_flag(data$venogram)
-    raw_fluoro <- if ("fluoroscopy_documented" %in% names(data)) data$fluoroscopy_documented else data$fluoroscopy
+    raw_fluoro <- if ("fluoroscopy_analysis" %in% names(data)) data$fluoroscopy_analysis else
+      if ("fluoroscopy_documented" %in% names(data)) data$fluoroscopy_documented else data$fluoroscopy
     data$fluoroscopy_for_comparison <- fluoroscopy_without_venogram(as_access_flag(raw_fluoro), data$venogram_for_comparison)
     imaging <- bind_rows(
       access_chisquare(data, "venogram_for_comparison", "Venogram"),
@@ -98,7 +128,9 @@ access_comparison_table <- function(data, split_imaging = FALSE) {
     access_chisquare(data, "ultrasound", "Ultrasound"),
     imaging) %>%
     mutate(pct_used_among_known = if_else(n_known > 0, 100 * n_used / n_known, NA_real_),
-           pct_used_among_all_procedures = if (nrow(data)) 100 * n_used / nrow(data) else NA_real_)
+           pct_used_among_all_procedures = if (nrow(data)) 100 * n_used / nrow(data) else NA_real_,
+           n_fluoroscopy_assumed = if_else(grepl("fluoroscopy", technique, ignore.case = TRUE),
+             if ("fluoroscopy_assumed" %in% names(data)) sum(data$fluoroscopy_assumed %in% TRUE) else 0L, 0L))
 }
 
 access_sensitivity_cohorts <- function(data) {
@@ -124,7 +156,8 @@ note_access_coverage <- function(data) {
   data <- data[as_access_flag(data$has_procedure_note) %in% TRUE, , drop = FALSE]
   data$ultrasound <- as_access_flag(if ("ultrasound" %in% names(data)) data$ultrasound else data$us)
   data$venogram <- as_access_flag(data$venogram)
-  raw <- if ("fluoroscopy_documented" %in% names(data)) data$fluoroscopy_documented else data$fluoroscopy
+  raw <- if ("fluoroscopy_analysis" %in% names(data)) data$fluoroscopy_analysis else
+    if ("fluoroscopy_documented" %in% names(data)) data$fluoroscopy_documented else data$fluoroscopy
   data$fluoroscopy_without_venogram <- fluoroscopy_without_venogram(as_access_flag(raw), data$venogram)
   data$cephalic_cutdown <- if ("cephalic_cutdown" %in% names(data)) as_access_flag(data$cephalic_cutdown) else rep(NA, nrow(data))
   flags <- cbind(data$ultrasound, data$venogram, data$fluoroscopy_without_venogram)
@@ -138,6 +171,7 @@ note_access_coverage <- function(data) {
     "mrn", "procedure_date", "guidance_review_reason", "pneumothorax", "procedure_list", "procedure_group",
     "note_qualifying_procedures", "note_procedures", "access_eligibility_basis", "note_access_eligible",
     "micropuncture", "ultrasound", "venogram", "fluoroscopy_without_venogram", "fluoroscopy_documented",
+    "fluoroscopy_assumed", "fluoroscopy_assumption_subset", "fluoroscopy_analysis", "tunneled_access",
     "cephalic_cutdown", "cephalic_cutdown_database", "cephalic_cutdown_note",
     "us_database", "us_note", "venogram_database", "venogram_note", "fluoroscopy_database", "fluoroscopy_note",
     "micro_puncture_database", "micro_puncture_note", "database_rows", "note_access_rows", "note_category_needs_review")))

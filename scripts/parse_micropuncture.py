@@ -24,7 +24,7 @@ TERMS = {
     "micropuncture": TERM,
     "ultrasound": re.compile(ULTRASOUND_PATTERN, re.I),
     "fluoroscopy": re.compile(
-        r"\b(?:fluoro(?:scop\w*)?|fluroscop\w*|"
+        r"\b(?:fluoro(?:scop\w*)?|fluroscop\w*|flourscop\w*|flouroscop\w*|"
         r"x[\s\u2010-\u2015-]*ray[\s\u2010-\u2015-]+guid(?:ance|ed)|"
         r"radiographic[\s-]+guid(?:ance|ed))\b", re.I),
     "venogram": re.compile(r"\b(?:veno(?:gram\w*|graph\w*)|venous\s+angiograph\w*)\b", re.I),
@@ -118,6 +118,11 @@ def classify(note, technique="micropuncture"):
         before = normalized[max(start, match.start() - 120):match.start()]
         after = normalized[match.end():min(end, match.end() + 160)]
         context = before + match.group() + after
+        uncertainty_context = context
+        if technique == "fluoroscopy" and re.search(r"\bneedle\b", context, re.I) and ACTION.search(context) and GUIDANCE.search(context):
+            # Following an old lead's course describes the landmark, not prior
+            # use of the currently documented needle-guidance technique.
+            uncertainty_context = re.sub(r"\b(?:previous|prior|old|existing)\s+leads?\b", "lead landmarks", context, flags=re.I)
         coronary_venography = technique == "venogram" and (
             re.search(r"\b(?:coronary(?:\s+(?:sinus|venous))?|CS)\s*$", before, re.I) or
             re.search(r"^\s*(?:of|in)\s+(?:the\s+)?coronary(?:\s+sinus)?\b", after, re.I))
@@ -127,7 +132,7 @@ def classify(note, technique="micropuncture"):
             label = "mention_without_access_context"
         elif NEGATIVE.search(before) or AFTER_NEGATIVE.search(after):
             label = "explicit_non_use"
-        elif UNCERTAIN.search(context) or re.search(r"\bnot\b", context, re.I):
+        elif UNCERTAIN.search(uncertainty_context) or re.search(r"\bnot\b", context, re.I):
             label = "uncertain_mention"
         elif (ACTION.search(context) or
               (technique == "cephalic_cutdown" and re.search(r"\bperform(?:ed)?\b", context, re.I)) or
