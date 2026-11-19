@@ -24,7 +24,7 @@ shareable_dir <- file.path(output_dir, "shareable")
 dir.create(private_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(shareable_dir, recursive = TRUE, showWarnings = FALSE)
 
-# 1. Merge baseline databases and reviewed notes. Do not require note coverage.
+# 1. Merge the full baseline for PTX assignment and cohort flow.
 read_procedures <- function(filename, source) {
   read_excel(file.path(data_dir, filename)) %>% clean_names() %>% mutate(
     mrn = as.character(mrn), patient_key = as.character(patient_key),
@@ -43,12 +43,13 @@ write_csv(merged$note_only, file.path(private_dir, "notes_without_database_match
 ptx_review <- read_csv(file.path(data_dir, "ptx_patients_clean.csv"),
                        col_types = cols(.default = "c"), show_col_types = FALSE) %>% clean_names()
 ptx <- attach_ptx(baseline, ptx_review)
-eligibility_audit <- abstract_cohort(ptx$data, revision_policy)
-cohort <- eligibility_audit %>% filter(access_cohort_include) %>% mutate(
+eligibility_audit <- abstract_cohort(ptx$data, revision_policy) %>% mutate(
+  abstract_cohort_include = access_cohort_include & has_procedure_note %in% TRUE)
+cohort <- eligibility_audit %>% filter(abstract_cohort_include) %>% mutate(
   micropuncture = as_access_flag(micro_puncture), ultrasound = as_access_flag(us),
   # Use original documented fluoroscopy before prior venogram-priority recoding.
   venogram_or_fluoroscopy = three_way_or(venogram, fluoroscopy_documented))
-if (!nrow(cohort)) stop("No included procedures. Inspect eligibility audit and input files.")
+if (!nrow(cohort)) stop("No eligible procedures with matched procedure notes. Inspect eligibility inputs.")
 # Freeze the existing QC subset before regenerated QC exports replace it.
 assumption_file <- getOption("hrs.fluoroscopy_assumption_subset", file.path(private_dir, "fluoroscopy_assumption_subset.csv"))
 if (!file.exists(assumption_file)) {
@@ -72,7 +73,7 @@ write_csv(eligibility_audit %>% filter(
   note_subcutaneous_icd_mention %in% TRUE | note_extravascular_icd_mention %in% TRUE |
   access_eligibility_basis == "excluded_nontransvenous_database_type"),
   file.path(private_dir, "nontransvenous_icd_audit.csv"))
-write_csv(eligibility_audit %>% filter(!access_cohort_include), file.path(private_dir, "excluded_procedures.csv"))
+write_csv(eligibility_audit %>% filter(!abstract_cohort_include), file.path(private_dir, "excluded_procedures.csv"))
 write_csv(ptx$assigned, file.path(private_dir, "ptx_assignments.csv"))
 write_csv(ptx$unmatched, file.path(private_dir, "ptx_unmatched.csv"))
 write_csv(ptx$multiple_candidates, file.path(private_dir, "ptx_multiple_candidate_procedures.csv"))
@@ -99,7 +100,7 @@ write_csv(cohort, file.path(private_dir, "final_procedure_dataset.csv"))
 # procedure. Procedure-level demographics are also supplied explicitly.
 patients <- cohort %>% filter(!is.na(mrn)) %>% arrange(mrn, procedure_date) %>% group_by(mrn) %>% slice_head(n = 1) %>% ungroup()
 write_csv(patients, file.path(private_dir, "final_patient_dataset.csv"))
-flow <- eligibility_audit %>% count(access_eligibility_basis, access_cohort_include, name = "n_procedures")
+flow <- eligibility_audit %>% count(access_eligibility_basis, access_cohort_include, abstract_cohort_include, name = "n_procedures")
 counts <- tibble(
   baseline_source_rows = nrow(main_database) + nrow(manual_database),
   baseline_procedure_records = nrow(baseline), included_procedures = nrow(cohort),
@@ -107,6 +108,7 @@ counts <- tibble(
   included_procedures_missing_patient_identifier = sum(is.na(cohort$mrn)),
   identifiable_patients_with_multiple_included_procedures = sum((cohort %>% filter(!is.na(mrn)) %>% count(mrn))$n > 1),
   included_with_note = sum(cohort$has_procedure_note), included_without_note = sum(!cohort$has_procedure_note),
+  eligible_without_note = sum(eligibility_audit$access_cohort_include & !eligibility_audit$abstract_cohort_include),
   included_with_demographics = sum(cohort$demographics_matched),
   included_unconfirmed_revision_access = sum(cohort$unconfirmed_revision_access),
   included_revisions_by_access_flag = sum(cohort$access_eligibility_basis == "included_revision_positive_access_flag"),
@@ -115,7 +117,7 @@ counts <- tibble(
   n_fluoroscopy_assumed = sum(cohort$fluoroscopy_assumed),
   included_ptx_events = sum(cohort$ptx_event_count),
   pct_procedures_with_ptx = 100 * mean(cohort$pneumothorax),
-  excluded_procedures_with_ptx = sum(eligibility_audit$pneumothorax[!eligibility_audit$access_cohort_include]),
+  excluded_procedures_with_ptx = sum(eligibility_audit$pneumothorax[!eligibility_audit$abstract_cohort_include]),
   unmatched_ptx_events = nrow(ptx$unmatched), revision_policy = revision_policy)
 write_csv(counts, file.path(shareable_dir, "cohort_counts.csv"))
 write_csv(flow, file.path(shareable_dir, "cohort_flow.csv"))
@@ -154,9 +156,9 @@ write_csv(access_comparison_table(sensitivity_cohorts$noteonly, split_imaging = 
 write_csv(sensitivity_cohort_counts(sensitivity_cohorts),
           file.path(shareable_dir, "access_sensitivity_cohort_counts.csv"))
 if (getOption("hrs.make_figures", TRUE)) {
-  write_access_figure(access_results, file.path(shareable_dir, "access_ptx"), "All eligible procedures")
+  write_access_figure(access_results, file.path(shareable_dir, "access_ptx"), "Eligible procedures with procedure notes")
   write_access_figure(access_comparison_table(sensitivity_cohorts$completedemo),
-    file.path(shareable_dir, "access_ptx_completedemo"), "Eligible procedures with demographic linkage")
+    file.path(shareable_dir, "access_ptx_completedemo"), "Eligible procedures with notes and demographic linkage")
   write_access_figure(access_comparison_table(sensitivity_cohorts$noteonly, split_imaging = TRUE),
     file.path(shareable_dir, "access_ptx_noteonly"), "Eligible procedures with procedure notes")
 }
@@ -196,7 +198,7 @@ writeLines(c(
   "R target: 4.5.1. No regression is fitted.",
   paste("Unconfirmed revision policy:", revision_policy),
   "Patient demographics use first included procedure; procedure demographics count each procedure.",
-  "Patients without notes/demographics remain; missing denominators are explicit.",
+  "The abstract cohort requires an eligible procedure and matched procedure-note data. Demographic linkage is a sensitivity restriction.",
   "Unknown access is not automatically FALSE; venogram/fluoroscopy is a three-valued OR.",
   "Scoped fluoroscopy assumptions use only the preserved no-access QC subset, specific atrial/RV/LV lead insertion and no positive technique; original documented flags are preserved.",
   "Tunneled-only subcutaneous/EV procedures are excluded and retained in private/tunneled_access_audit.csv; mixed qualifying transvenous implants remain separately flagged.",

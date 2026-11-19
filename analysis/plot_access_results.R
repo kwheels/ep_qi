@@ -7,9 +7,13 @@ source(file.path(analysis_dir, "access_figures.R"))
 data_dir <- getOption("hrs.data_dir", "/home/kwheels/cied_complications")
 output_dir <- getOption("hrs.output_dir", file.path(data_dir, "hrs_abstract_output"))
 shareable_dir <- file.path(output_dir, "shareable")
+counts <- read.csv(file.path(shareable_dir, "access_sensitivity_cohort_counts.csv"))
+if (!isTRUE(counts$n_procedures[counts$analysis == "full"] == counts$n_procedures[counts$analysis == "noteonly"])) {
+  stop("Saved tables include procedures without notes. Rerun analysis/hrs_abstract_analysis.R before redrawing.")
+}
 for (suffix in c("", "_completedemo", "_noteonly")) {
-  label <- switch(suffix, "_completedemo" = "Eligible procedures with demographic linkage",
-                  "_noteonly" = "Eligible procedures with procedure notes", "All eligible procedures")
+  label <- if (suffix == "_completedemo") "Eligible procedures with notes and demographic linkage" else
+    "Eligible procedures with procedure notes"
   results <- read.csv(file.path(shareable_dir, paste0("access_chisquared", suffix, ".csv")),
                       stringsAsFactors = FALSE, check.names = FALSE)
   write_access_figure(results, file.path(shareable_dir, paste0("access_ptx", suffix)), label)

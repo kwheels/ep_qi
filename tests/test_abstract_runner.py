@@ -46,7 +46,7 @@ class AbstractRunnerTests(unittest.TestCase):
                      [[str(i).zfill(5), "2024-01-01", int(i % 2 == 0), int(i % 3 == 0), 1, int(i % 3 != 0)] for i in range(1, 7)])
             csv_file(root / "procedure_categories_v1/procedure_eligibility.csv", ["mrn", "procedure_date", "note_access_eligible"],
                      [[str(i), "2024-01-01", 0 if i == 6 else 1] for i in range(1, 7)])
-            csv_file(root / "ptx_patients_clean.csv", ["mrn", "date_diagnosed"], [["1", "01/02/2024"], ["3", "01/03/2024"]])
+            csv_file(root / "ptx_patients_clean.csv", ["mrn", "date_diagnosed"], [["1", "01/02/2024"], ["3", "01/03/2024"], ["7", "01/02/2024"]])
             csv_file(demo / "patients.csv", ["MRN", "PatientID", "PatientInfo__DOB", "DemographicInfo__Sex", "DemographicInfo__Ethnicity", "ClarityMedicalHistory__ProblemDescription"],
                      [[str(i).zfill(5), "synthetic-guid-" + str(i), "06/01/1950 00:00", "Female" if i % 2 else "Male", "Example ethnicity",
                        "SYNTHETIC_PRIVATE_DIAGNOSIS | Condition B"] for i in range(1, 12)])
@@ -70,21 +70,27 @@ class AbstractRunnerTests(unittest.TestCase):
             self.assertTrue((output / "private/tunneled_access_audit.csv").exists())
             with (output / "shareable/cohort_counts.csv").open(newline="", encoding="utf-8") as handle:
                 counts = next(csv.DictReader(handle))
-            self.assertEqual(counts["included_procedures"], "10")
-            self.assertEqual(counts["included_patients_with_valid_mrn"], "10")
-            self.assertEqual(counts["included_without_note"], "5")
+            self.assertEqual(counts["included_procedures"], "5")
+            self.assertEqual(counts["included_patients_with_valid_mrn"], "5")
+            self.assertEqual(counts["included_without_note"], "0")
+            self.assertEqual(counts["eligible_without_note"], "5")
+            self.assertEqual(counts["included_procedures_with_ptx"], "2")
+            self.assertEqual(counts["excluded_procedures_with_ptx"], "1")
+            with (output / "private/final_procedure_dataset.csv").open(newline="", encoding="utf-8") as handle:
+                self.assertEqual({r["mrn"] for r in csv.DictReader(handle)}, {str(i) for i in range(1, 6)})
             with (output / "shareable/demographics_summary.csv").open(newline="", encoding="utf-8") as handle:
                 demographics = next(csv.DictReader(handle))
-            self.assertEqual(demographics["n_age_known"], "10")
+            self.assertEqual(demographics["n_age_known"], "5")
             self.assertEqual(demographics["mean_age"], "73")
             with (output / "shareable/access_chisquared.csv").open(newline="", encoding="utf-8") as handle:
                 comparisons = list(csv.DictReader(handle))
             self.assertEqual(len(comparisons), 3)
+            self.assertEqual(comparisons[0]["n_known"], "5")
             with (output / "shareable/access_chisquared_completedemo.csv").open(newline="", encoding="utf-8") as handle:
                 complete = list(csv.DictReader(handle))
             with (output / "shareable/access_chisquared_noteonly.csv").open(newline="", encoding="utf-8") as handle:
                 noteonly = list(csv.DictReader(handle))
-            self.assertEqual(complete[0]["n_known"], "10")
+            self.assertEqual(complete[0]["n_known"], "5")
             self.assertEqual(noteonly[0]["n_known"], "5")
             self.assertEqual(len(noteonly), 4)
             self.assertEqual([r["technique"] for r in noteonly], ["Micropuncture", "Ultrasound", "Venogram", "Fluoroscopy without venogram"])

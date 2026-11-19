@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-19
+
+- Use eligible procedures with matched procedure notes throughout the HRS abstract, including its cohort counts, demographics, procedure mix, figures and access-combination tests. Keep PTX assignment on the full baseline and report eligible procedures excluded for missing notes.
+
 ## 2026-11-12
 
 - Recover lead-insertion items from bounded duplicated sections containing interleaved discharge text, retaining extraction QC and explicit review reasons.

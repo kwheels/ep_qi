@@ -12,6 +12,9 @@ data <- read_csv(file.path(output_dir, "private/final_procedure_dataset.csv"),
                  col_types = cols(.default = "c"), show_col_types = FALSE)
 data$pneumothorax <- as.integer(as_access_flag(data$pneumothorax))
 data$has_procedure_note <- as_access_flag(data$has_procedure_note)
+# Older saved final datasets include eligible procedures without notes.
+data <- data %>% filter(has_procedure_note %in% TRUE)
+if (!nrow(data)) stop("No eligible procedures with matched procedure notes in the saved dataset.")
 data$demographics_matched <- as_access_flag(data$demographics_matched)
 cohorts <- access_sensitivity_cohorts(data)
 for (name in names(cohorts)) {
