@@ -27,6 +27,7 @@ Small Python files at the repository root preserve previously shared commands. T
 | R analysis with note eligibility and anything-counts access | `analysis/ptx_analysis_v2.R` | [R note enrichment](docs/R_NOTE_ENRICHMENT.md) |
 | HRS abstract counts, demographics and three chi-squared tests | `analysis/hrs_abstract_analysis.R` | [Abstract analysis](docs/HRS_ABSTRACT_ANALYSIS.md) |
 | Export specific saved analysis cases | `scripts/export_analysis_cases.py` | [Abstract analysis](docs/HRS_ABSTRACT_ANALYSIS.md) |
+| Compare access-technique combinations | `analysis/analyze_access_combinations.R` | [Combination analyses](docs/HRS_ABSTRACT_ANALYSIS.md#access-technique-combinations) |
 | Redraw abstract access figures | `analysis/plot_access_results.R` | [Abstract figures](docs/HRS_ABSTRACT_ANALYSIS.md#abstract-figures) |
 | Extract demographics and repeated patient data | `demographic_extraction/extract_demographics.py` | [Demographic extraction](demographic_extraction/README.md) |
 

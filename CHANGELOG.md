@@ -76,3 +76,7 @@
 - Add a standard-library Python exporter for selected eligibility/PTX cases from the saved final analysis dataset, with explicit match-status reporting.
 
 - Recognize flourscopic/flouroscopic needle guidance and avoid treating previous-lead landmarks as historical guidance. Exclude tunneled subcutaneous coil/lead-only procedures (6996S/SQ), retain a broad tunneled/Sub-Q/EV audit flag, and apply explicitly audited fluoroscopy assumptions only to the frozen no-access QC subset with specific qualifying lead insertion.
+
+## 2026-11-19
+
+- Add separate inclusive-combination and exact-pattern chi-squared tables for all three abstract cohorts, with explicit unknown handling, sparse-count flags, raw/BH p-values and inference counts. Add a saved-dataset runner; retain existing figures and single-technique outputs.

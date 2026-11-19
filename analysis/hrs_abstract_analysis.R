@@ -142,6 +142,11 @@ write_csv(access_results, file.path(shareable_dir, "access_chisquared.csv"))
 # Sensitivity restrictions are applied after the original PTX assignment and
 # eligibility filtering. Recalculate every denominator and test in each subset.
 sensitivity_cohorts <- access_sensitivity_cohorts(cohort)
+write_csv(access_combination_table(cohort), file.path(shareable_dir, "access_combination_chisquared.csv"))
+write_csv(access_combination_table(sensitivity_cohorts$completedemo),
+          file.path(shareable_dir, "access_combination_chisquared_completedemo.csv"))
+write_csv(access_combination_table(sensitivity_cohorts$noteonly, split_imaging = TRUE),
+          file.path(shareable_dir, "access_combination_chisquared_noteonly.csv"))
 write_csv(access_comparison_table(sensitivity_cohorts$completedemo),
           file.path(shareable_dir, "access_chisquared_completedemo.csv"))
 write_csv(access_comparison_table(sensitivity_cohorts$noteonly, split_imaging = TRUE),

@@ -140,6 +140,56 @@ access_sensitivity_cohorts <- function(data) {
        noteonly = data[data$has_procedure_note %in% TRUE, , drop = FALSE])
 }
 
+access_combination_table <- function(data, split_imaging = FALSE) {
+  flags <- data.frame(micro = as_access_flag(data$micropuncture), us = as_access_flag(data$ultrasound))
+  labels <- c(micro = "Micropuncture", us = "Ultrasound")
+  if (split_imaging) {
+    flags$venogram <- as_access_flag(data$venogram)
+    raw <- if ("fluoroscopy_analysis" %in% names(data)) data$fluoroscopy_analysis else
+      if ("fluoroscopy_documented" %in% names(data)) data$fluoroscopy_documented else data$fluoroscopy
+    flags$fluoro <- fluoroscopy_without_venogram(as_access_flag(raw), flags$venogram)
+    labels <- c(labels, venogram = "Venogram", fluoro = "Fluoroscopy without venogram")
+  } else {
+    flags$imaging <- as_access_flag(data$venogram_or_fluoroscopy)
+    labels <- c(labels, imaging = "Venogram or fluoroscopy")
+  }
+  inferred <- if ("fluoroscopy_assumed" %in% names(data)) data$fluoroscopy_assumed %in% TRUE else rep(FALSE, nrow(data))
+  known_outcome <- !is.na(data$pneumothorax)
+  rows <- list()
+  add <- function(value, selected, definition) {
+    x <- data
+    x$.combination <- value
+    label <- if (length(selected)) paste(unname(labels[selected]), collapse = " + ") else "None documented"
+    access_chisquare(x, ".combination", label) %>% mutate(
+      definition = definition, n_techniques = length(selected),
+      comparator = if (definition == "At least these techniques") "Not all specified techniques used" else "All other exact patterns",
+      n_fluoroscopy_assumed_in_group = sum(inferred & value %in% TRUE & known_outcome))
+  }
+  # Inclusive combinations use three-valued AND: TRUE & NA is unknown;
+  # FALSE & NA is definitively outside the specified combination.
+  for (size in 2:ncol(flags)) {
+    for (selected in combn(names(flags), size, simplify = FALSE)) {
+      if (all(c("venogram", "fluoro") %in% selected)) next
+      rows[[length(rows) + 1]] <- add(Reduce(`&`, flags[selected]), selected, "At least these techniques")
+    }
+  }
+  # Exact patterns require every component to be known. Unknown never means no.
+  patterns <- expand.grid(rep(list(c(FALSE, TRUE)), ncol(flags)), KEEP.OUT.ATTRS = FALSE)
+  names(patterns) <- names(flags)
+  complete <- rowSums(is.na(flags)) == 0
+  for (i in seq_len(nrow(patterns))) {
+    pattern <- as.logical(unlist(patterns[i, ], use.names = FALSE))
+    selected <- names(flags)[pattern]
+    if (all(c("venogram", "fluoro") %in% selected)) next
+    matches <- Reduce(`&`, Map(function(column, wanted) column == wanted, flags, pattern))
+    value <- ifelse(complete, matches, NA)
+    rows[[length(rows) + 1]] <- add(value, selected, "Exact pattern")
+  }
+  bind_rows(rows) %>% group_by(definition) %>%
+    mutate(p_value_bh = p.adjust(p_value, method = "BH")) %>% ungroup() %>%
+    select(definition, technique, n_techniques, comparator, everything())
+}
+
 sensitivity_cohort_counts <- function(cohorts) {
   bind_rows(lapply(names(cohorts), function(name) {
     x <- cohorts[[name]]

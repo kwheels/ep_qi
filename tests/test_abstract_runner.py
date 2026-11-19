@@ -89,6 +89,11 @@ class AbstractRunnerTests(unittest.TestCase):
             self.assertEqual(len(noteonly), 4)
             self.assertEqual([r["technique"] for r in noteonly], ["Micropuncture", "Ultrasound", "Venogram", "Fluoroscopy without venogram"])
             self.assertEqual(len(complete), 3)
+            for suffix, expected_rows in [("", 12), ("_completedemo", 12), ("_noteonly", 19)]:
+                with (output / "shareable" / ("access_combination_chisquared" + suffix + ".csv")).open(newline="", encoding="utf-8") as handle:
+                    combinations = list(csv.DictReader(handle))
+                self.assertEqual(len(combinations), expected_rows)
+                self.assertEqual({r["definition"] for r in combinations}, {"Exact pattern", "At least these techniques"})
             self.assertTrue((output / "shareable/access_sensitivity_cohort_counts.csv").exists())
             self.assertTrue((output / "private/noteonly_no_access_listed.csv").exists())
             self.assertTrue((output / "private/noteonly_no_technique_listed.csv").exists())
@@ -101,7 +106,7 @@ class AbstractRunnerTests(unittest.TestCase):
                     if extension == "png":
                         self.assertEqual(struct.unpack(">II", image_path.read_bytes()[16:24]), (1500, 1500))
             redraw_expression = ('options(hrs.output_dir=' + json.dumps(output.as_posix()) + '); '
-                                 'source("analysis/plot_access_results.R")')
+                                 'source("analysis/plot_access_results.R"); source("analysis/analyze_access_combinations.R")')
             redraw = subprocess.run([rscript, "--vanilla", "-e", redraw_expression], cwd=str(repo), env=environment,
                                     capture_output=True, text=True)
             self.assertEqual(redraw.returncode, 0, redraw.stdout + redraw.stderr)
